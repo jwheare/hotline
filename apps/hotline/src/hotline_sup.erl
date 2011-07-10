@@ -23,5 +23,8 @@ start_link() ->
 %% ===================================================================
 
 init([]) ->
-    {ok, { {one_for_one, 1, 1}, [?CHILD(hotline_c2s, worker)]} }.
+    {ok, { {one_for_one, 1, 1}, [
+        ?CHILD(hotline_c2s, worker),
+        ?CHILD(hotline_client, worker)
+    ]} }.
 
