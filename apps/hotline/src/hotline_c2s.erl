@@ -117,7 +117,7 @@ handle_info(Request, State) ->
 % private methods
 
 register_transaction_handler(State, Type, Handler) ->
-    TransactionHandlers = [{State#state.transaction_id, {Type, Handler} | State#state.transaction_handlers],
+    TransactionHandlers = [{State#state.transaction_id, {Type, Handler}} | State#state.transaction_handlers],
     State#state{transaction_handlers=TransactionHandlers}.
 
 connect(Connection) ->
@@ -219,7 +219,7 @@ parse_transactions(<<
 
 handle_tcp(<<"TRTP",0,0,0,0>>, State = #state{status=connecting}) ->
     NewState = login(State),
-    NewState2 = register_transaction_handler(NewState, login, fun set_client_user_info/1)
+    NewState2 = register_transaction_handler(NewState, login, fun set_client_user_info/1),
     NewState2#state{status=login};
 
 handle_tcp(<<"TRTP",Error:32>>, _State = #state{status=connecting}) ->
