@@ -134,6 +134,11 @@ tcp_send(State, Data) ->
 
 % request
 
+request_with_handler(State, Operation) -> request_with_handler(State, Operation, []).
+request_with_handler(State, Operation, Parameters) ->
+    NewState = request(State, Operation, Parameters),
+    register_response_handler(NewState, Operation).
+
 request(State, Operation) -> request(State, Operation, []).
 request(State, Operation, Parameters) ->
     Flags = 0,
@@ -230,16 +235,16 @@ handshake(State) ->
 
 login(State) ->
     Connection = State#state.connection,
-    NewState = request(State, login, [
+    NewState = request_with_handler(State, login, [
         {user_login, Connection#connection.username},
         {user_password, Connection#connection.password},
         {user_name, Connection#connection.name},
         {user_icon_id, Connection#connection.icon}
     ]),
-    register_response_handler(NewState#state{status=login}, login).
+    NewState#state{status=login}.
 
 get_user_name_list(State) ->
-    request(State, get_user_name_list).
+    request_with_handler(State, get_user_name_list).
 
 chat_send(State, Line) ->
     request(State, chat_send, [
