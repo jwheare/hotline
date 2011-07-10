@@ -58,8 +58,8 @@ init([WebsocketPid]) ->
         title="Psyjnir",
         username="",
         password="",
-        name="Gholsbane [erlang]",
-        icon=25704
+        name="Spawnfest User",
+        icon=150
     },
     monitor(process, WebsocketPid),
     case connect(Connection) of
