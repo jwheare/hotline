@@ -14,3 +14,9 @@
     error_code,
     parameters
 }).
+-record(user, {
+    id,
+    nick,
+    icon,
+    status
+}).

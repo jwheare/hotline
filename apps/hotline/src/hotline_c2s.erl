@@ -5,9 +5,13 @@
 -export([
     start_link/0,
     stop/0,
+    
+    transactions_parse/1,
+    
     chat_send/1,
+    
     get_state/0,
-    transactions_parse/1
+    get_user_list/0
 ]).
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
 
@@ -23,7 +27,9 @@
     connection,                % connection object
     transaction_id = 0,        % unique incrementing id
     response_handlers = [],    % response transaction handlers
-    packet_buffer = <<>>       % buffer of unparsed packets
+    packet_buffer = <<>>,      % buffer of unparsed packets
+    user_list = [],            % users connected to the server
+    chat_subject               % topic of the chat
 }).
 
 % Public methods
@@ -39,6 +45,9 @@ chat_send(Line) ->
 
 get_state() ->
     gen_server:call(?MODULE, get_state).
+    
+get_user_list() ->
+    gen_server:call(?MODULE, get_user_list).
 
 % gen_server callbacks
 
@@ -82,6 +91,9 @@ handle_call({chat_send, Line}, _From, State) ->
 
 handle_call(get_state, _From, State) ->
     {reply, State, State};
+
+handle_call(get_user_list, _From, State) ->
+    {reply, State#state.user_list, State};
 
 handle_call(_Request, _From, State) ->
     {reply, ok, State}.
@@ -273,8 +285,26 @@ tcp(State, Packet) ->
 response(State, login, _Transaction) ->
     get_user_name_list(State#state{status=connected});
     
-% response(State, get_user_name_list, Transaction) ->
-%     State.
+response(State, get_user_name_list, Transaction) ->
+    ChatSubject = proplists:get_value(chat_subject, Transaction#transaction.parameters),
+    NewUserList = [
+        {UserId, #user{
+            id=UserId,
+            nick=Nick,
+            icon=Icon,
+            status=Status
+        }}
+        || {Type, <<
+            UserId:16,
+            Icon:16,
+            Status:16,
+            NickSize:16,
+            Nick:NickSize/binary
+        >>} <- Transaction#transaction.parameters,
+        Type =:= user_name_with_info
+    ],
+    ?LOG("~p", [NewUserList]),
+    State#state{chat_subject=ChatSubject, user_list=NewUserList};
 
 response(State, Type, Transaction) ->
     ?LOG("RSP [~p:~p] ~p", [Transaction#transaction.id, Type, Transaction]),
@@ -286,6 +316,37 @@ transaction(State, Transaction = #transaction{operation=chat_msg}) ->
     Message = binary_to_list(proplists:get_value(data, Transaction#transaction.parameters)),
     ?LOG("~s", [string:strip(Message, left, $\r)]),
     State;
+
+transaction(State, Transaction = #transaction{operation=notify_change_user}) ->
+    % Construct a user record
+    Params = Transaction#transaction.parameters,
+    <<UserId:16>> = proplists:get_value(user_id, Params),
+    <<Icon:16>> = proplists:get_value(user_icon_id, Params),
+    <<Status:16>> = proplists:get_value(user_flags, Params),
+    User = #user{
+        id=UserId,
+        nick=proplists:get_value(user_name, Params),
+        icon=Icon,
+        status=Status
+    },
+    % Replace or append the user in the user_list
+    UserList = State#state.user_list,
+    NewUser = {UserId, User},
+    case proplists:get_value(UserId, UserList) of
+        undefined ->
+            % Add user
+            NewList = lists:append(UserList, [NewUser]);
+        _StateUser ->
+            % Modify user
+            NewList = lists:keyreplace(UserId, 1, UserList, NewUser)
+    end,
+    State#state{user_list=NewList};
+
+transaction(State, Transaction = #transaction{operation=notify_delete_user}) ->
+    % Remove from user_list
+    <<UserId:16>> = proplists:get_value(user_id, Transaction#transaction.parameters),
+    NewList = proplists:delete(UserId, State#state.user_list),
+    State#state{user_list=NewList};
 
 transaction(State, Transaction) ->
     % Check for a transaction handler
