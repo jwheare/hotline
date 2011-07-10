@@ -1,2 +1,7 @@
 Hotline client
 http://hotline.wikia.com/wiki/Hotline_Wiki
+
+Start the app with ./start.sh
+Load a browser at http://localhost:55500/ to connect to a test server
+
+Maybe http://livebus.org:55500 will work if I can get it up and running.

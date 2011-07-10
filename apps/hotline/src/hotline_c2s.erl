@@ -54,8 +54,8 @@ get_user_list() ->
 
 init([WebsocketPid]) ->
     Connection = #connection{
-        hostname="hotline.psyjnir.org",
-        title="Psyjnir",
+        hostname="livebus.org",
+        title="Livebus",
         username="",
         password="",
         name="Spawnfest User",
