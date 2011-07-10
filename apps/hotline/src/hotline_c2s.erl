@@ -116,6 +116,10 @@ handle_info(Request, State) ->
 
 % private methods
 
+register_transaction_handler(State, Type, Handler) ->
+    TransactionHandlers = [{State#state.transaction_id, {Type, Handler} | State#state.transaction_handlers],
+    State#state{transaction_handlers=TransactionHandlers}.
+
 connect(Connection) ->
     gen_tcp:connect(Connection#connection.hostname, ?REMOTE_PORT, [
         binary,
@@ -210,10 +214,6 @@ parse_transactions(<<
         error_code=ErrorCode,
         parameters=parse_params(ParameterData)
     } | Acc]).
-
-register_transaction_handler(State, Type, Handler) ->
-    TransactionHandlers = [{State#state.transaction_id, {Type, Handler} | State#state.transaction_handlers],
-    State#state{transaction_handlers=TransactionHandlers};
 
 % handle_tcp
 
