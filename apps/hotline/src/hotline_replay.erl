@@ -1,10 +1,10 @@
 -module(hotline_replay).
 
--export([run/1]).
+-export([run/2]).
 
 -include("hotline.hrl").
 
-run(Messages) ->
+run(_Handshake, Messages) ->
     lists:foldl(fun ({Direction, Packet}, PacketBuffer) ->
         {Transactions, RestPacket} = hotline_c2s:parse_transactions(<<PacketBuffer/binary,Packet/binary>>),
         lists:foreach(
