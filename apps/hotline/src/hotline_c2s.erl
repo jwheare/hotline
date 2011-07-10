@@ -6,6 +6,7 @@
     start_link/0,
     stop/0,
     chat_send/1,
+    get_state/0,
     transactions_parse/1
 ]).
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
@@ -35,6 +36,9 @@ stop() ->
 
 chat_send(Line) ->
     gen_server:call(?MODULE, {chat_send, Line}).
+
+get_state() ->
+    gen_server:call(?MODULE, get_state).
 
 % gen_server callbacks
 
@@ -75,6 +79,9 @@ handle_call(stop, _From, State) ->
 handle_call({chat_send, Line}, _From, State) ->
     NewState = chat_send(State, Line),
     {reply, ok, NewState};
+
+handle_call(get_state, _From, State) ->
+    {reply, State, State};
 
 handle_call(_Request, _From, State) ->
     {reply, ok, State}.
