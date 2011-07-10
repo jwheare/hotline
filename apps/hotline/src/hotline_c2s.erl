@@ -235,7 +235,7 @@ handle_transaction(State, Transaction) ->
     % Check for a transaction handler
     TxnId = Transaction#transaction.transaction_id,
     case proplists:get_value(TxnId, State#state.transaction_handlers) of
-        {type, Fun} when is_function(Fun) ->
+        {_Type, Fun} when is_function(Fun) ->
             {ok, NewState} = Fun(State),
             TransactionHandlers = proplists:delete(TxnId, State#state.transaction_handlers),
             NewState#state{transaction_handlers=TransactionHandlers};
