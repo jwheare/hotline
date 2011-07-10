@@ -5,6 +5,7 @@
     transaction_to_atom/1, transaction_to_code/1
 ]).
 
+field_to_atom(0)   -> unknown;
 field_to_atom(100) -> error_text;
 field_to_atom(101) -> data;
 field_to_atom(102) -> user_name;
@@ -129,6 +130,7 @@ field_to_code(news_art_parent_art) -> 335;
 field_to_code(news_artist_child_art) -> 336;
 field_to_code(news_art_recurse_del) -> 337.
 
+transaction_to_atom(0)   -> unknown;
 transaction_to_atom(100) -> error;
 transaction_to_atom(101) -> get_msgs;
 transaction_to_atom(102) -> new_msg;
