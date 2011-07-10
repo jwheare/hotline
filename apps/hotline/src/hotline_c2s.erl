@@ -137,7 +137,7 @@ login(State) ->
         {user_password, State#state.connection#connection.password}
     ]).
 
-set_client_user_info(State, _Transaction) ->
+set_client_user_info(State) ->
     % TODO options/automatic response settings
     send_request(State, set_client_user_info, [
         {user_name, State#state.connection#connection.name},
@@ -238,7 +238,7 @@ handle_transaction(State, Transaction) ->
     TxnId = Transaction#transaction.transaction_id,
     case proplists:get_value(TxnId, State#state.transaction_handlers) of
         {type, Fun} when is_function(Fun) ->
-            {ok, NewState} = Fun(State, Transaction),
+            {ok, NewState} = Fun(State),
             TransactionHandlers = proplists:delete(TxnId, State#state.transaction_handlers),
             NewState#state{transaction_handlers=TransactionHandlers};
         undefined ->
