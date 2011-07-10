@@ -8,7 +8,8 @@ start_link() ->
 loop(Socket) ->
     case gen_tcp:recv(Socket, 0) of
         {ok, Line} ->
-            hotline_c2s:send_chat(Line),
+            StrippedLine = string:strip(string:strip(Line, right, $\n), right, $\r),
+            hotline_c2s:send_chat(StrippedLine),
             loop(Socket);
         {error, closed} ->
             ok
