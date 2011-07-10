@@ -5,36 +5,24 @@
 -export([
     start_link/0,
     stop/0,
-    send_chat/1
+    send_chat/1,
+    parse_transactions/1
 ]).
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
+
+-include("hotline.hrl").
 
 -define(REMOTE_PORT, 5500).
 -define(LOG(String, Params), io:format(String ++ "~n", Params)).
 -define(LOG(String), ?LOG(String, [])).
 
 -record(state, {
-    socket,                  % tcp socket
-    status,                  % connected status
-    connection,              % connection object
-    transaction_id=0,        % unique incrementing id
-    transaction_handlers=[]  % transaction response handlers
-}).
--record(connection, {
-    hostname,
-    title,
-    username,
-    password,
-    name,
-    icon
-}).
--record(transaction, {
-    flags,
-    is_reply,
-    operation,
-    transaction_id,
-    error_code,
-    parameters
+    socket,                    % tcp socket
+    status,                    % connected status
+    connection,                % connection object
+    transaction_id = 0,        % unique incrementing id
+    transaction_handlers = [], % transaction response handlers
+    packet_buffer = <<>>       % buffer of unparsed packets
 }).
 
 % Public methods
@@ -207,8 +195,10 @@ parse_params(ParameterData, Acc) ->
     <<FieldData:FieldSize/binary,RestParams/binary>> = Rest,
     parse_params(RestParams, [{hotline_constants:field_to_atom(FieldType), FieldData}|Acc]).
 
-parse_transactions(Packet) -> lists:reverse(parse_transactions(Packet, [])).
-parse_transactions(<<>>, Acc) -> Acc;
+parse_transactions(Packet) ->
+    {Transactions, RestPacket} = parse_transactions(Packet, []),
+    {lists:reverse(Transactions), RestPacket}.
+parse_transactions(<<>>, Transactions) -> {Transactions, <<>>};
 parse_transactions(<<
         Flags:8,
         IsReply:8,
@@ -217,18 +207,19 @@ parse_transactions(<<
         ErrorCode:32,
         _TotalSize:32,
         DataSize:32,
-        Rest/binary
-    >>, Acc) ->
-    <<DataPart:DataSize/binary,RestPacket/binary>> = Rest,
+        DataPart:DataSize/binary,
+        RestPacket/binary
+    >>, Transactions) ->
     <<_ParameterCount:16,ParameterData/binary>> = DataPart,
     parse_transactions(RestPacket, [#transaction{
         flags=Flags,
         is_reply=IsReply,
         operation=hotline_constants:transaction_to_atom(OperationCode),
-        transaction_id=TransactionId,
+        id=TransactionId,
         error_code=ErrorCode,
         parameters=parse_params(ParameterData)
-    } | Acc]).
+    } | Transactions]);
+parse_transactions(Packet, Transactions) -> {Transactions, Packet}.
 
 % handle_tcp
 
@@ -240,9 +231,12 @@ handle_tcp(<<"TRTP",Error:32>>, _State = #state{status=connecting}) ->
     exit({handshake_error, Error});
 
 handle_tcp(Packet, State) ->
+    PacketBuffer = State#state.packet_buffer,
+    {Transactions, RestPacket} = parse_transactions(<<PacketBuffer/binary,Packet/binary>>),
+    NewState = State#state{packet_buffer=RestPacket},
     lists:foldl(fun (Transaction, CurrentState) ->
         handle_transaction(CurrentState, Transaction)
-    end, State, parse_transactions(Packet)).
+    end, NewState, Transactions).
 
 % handle_transaction
 
@@ -253,7 +247,7 @@ handle_transaction(State, Transaction = #transaction{operation=chat_msg}) ->
 
 handle_transaction(State, Transaction) ->
     % Check for a transaction handler
-    TxnId = Transaction#transaction.transaction_id,
+    TxnId = Transaction#transaction.id,
     case proplists:get_value(TxnId, State#state.transaction_handlers) of
         {_Type, Fun} when is_function(Fun) ->
             {ok, NewState} = Fun(State),
