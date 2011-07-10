@@ -4,7 +4,8 @@
 
 -export([
     start_link/0,
-    stop/0
+    stop/0,
+    send_chat/1
 ]).
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
 
@@ -91,6 +92,13 @@ handle_cast({send_data, Data}, State) ->
         {error, Reason} -> {stop, {send_data_error, Reason}, State}
     end;
 
+handle_cast({send_chat, Line}, State) ->
+    {ok, NewState} = send_request(State, chat_send, [
+        {data, Line},
+        {chat_options, 0}
+    ]),
+    {noreply, NewState};
+
 handle_cast(_Request, State) ->
     {noreply, State}.
 
@@ -129,6 +137,9 @@ connect(Connection) ->
 
 send_data(Data) ->
     gen_server:cast(?MODULE, {send_data, Data}).
+
+send_chat(Line) ->
+    gen_server:cast(?MODULE, {send_chat, Line}).
 
 send_handshake() ->
     Version = 1,
