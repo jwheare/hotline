@@ -158,20 +158,21 @@ send_request(State, Operation, Parameters) ->
         case ParamV of
             ParamV when is_integer(ParamV) ->
                 Size = 4,
-                Data = <<ParamV:32>>;
+                Binary = <<ParamV:32>>;
             ParamV when is_list(ParamV) ->
-                Data = list_to_binary(ParamV),
-                Size = size(Data);
+                Binary = list_to_binary(ParamV),
+                Size = size(Binary);
             ParamV when is_binary(ParamV) ->
-                Data = ParamV,
-                Size = size(Data)
+                Binary = ParamV,
+                Size = size(Binary)
         end,
-        <<Type:16,Size:16,Data/binary>>
+        <<Type:16,Size:16,Binary/binary>>
     end, Parameters),
     
     ParameterCount = length(Parameters),
+    Data = [<<ParameterCount:16>>, ParameterData],
     
-    TotalSize = iolist_size(ParameterData),
+    TotalSize = iolist_size(Data),
     ChunkSize = TotalSize,
     
     Header = <<
@@ -183,7 +184,7 @@ send_request(State, Operation, Parameters) ->
         TotalSize:32,
         ChunkSize:32
     >>,
-    send_data([Header, <<ParameterCount:16>>, ParameterData]),
+    send_data([Header, Data]),
     {ok, State#state{transaction_id=TransactionId}}.
 
 % parse_transactions
