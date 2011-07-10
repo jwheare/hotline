@@ -6,7 +6,7 @@
 
 run(_Handshake, Messages) ->
     lists:foldl(fun ({Direction, Packet}, PacketBuffer) ->
-        {Transactions, RestPacket} = hotline_c2s:parse_transactions(<<PacketBuffer/binary,Packet/binary>>),
+        {Transactions, RestPacket} = hotline_c2s:transactions_parse(<<PacketBuffer/binary,Packet/binary>>),
         lists:foreach(
             fun (Transaction) ->
                 log(case Direction of snd -> "->"; rcv -> " <-" end, Transaction)

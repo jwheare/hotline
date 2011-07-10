@@ -5,8 +5,8 @@
 -export([
     start_link/0,
     stop/0,
-    send_chat/1,
-    parse_transactions/1
+    chat_send/1,
+    transactions_parse/1
 ]).
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
 
@@ -21,7 +21,7 @@
     status,                    % connected status
     connection,                % connection object
     transaction_id = 0,        % unique incrementing id
-    transaction_handlers = [], % transaction response handlers
+    response_handlers = [],    % response transaction handlers
     packet_buffer = <<>>       % buffer of unparsed packets
 }).
 
@@ -33,6 +33,9 @@ start_link() ->
 stop() ->
     gen_server:call(?MODULE, stop).
 
+chat_send(Line) ->
+    gen_server:call(?MODULE, {chat_send, Line}).
+
 % gen_server callbacks
 
 init([]) ->
@@ -41,7 +44,7 @@ init([]) ->
         title="Psyjnir",
         username="",
         password="",
-        name="Spawnfest [erlang]",
+        name="Gholsbane [erlang]",
         icon=25704
     },
     case connect(Connection) of
@@ -69,23 +72,14 @@ code_change(_PreviousVersion, State, _Extra) ->
 handle_call(stop, _From, State) ->
     {stop, normal, ok, State};
 
+handle_call({chat_send, Line}, _From, State) ->
+    NewState = chat_send(State, Line),
+    {reply, ok, NewState};
+
 handle_call(_Request, _From, State) ->
     {reply, ok, State}.
 
 % handle_cast
-
-handle_cast({send_data, Data}, State) ->
-    case gen_tcp:send(State#state.socket, Data) of
-        ok              -> {noreply, State};
-        {error, Reason} -> {stop, {send_data_error, Reason}, State}
-    end;
-
-handle_cast({send_chat, Line}, State) ->
-    {ok, NewState} = send_request(State, chat_send, [
-        {data, Line},
-        {chat_options, 0}
-    ]),
-    {noreply, NewState};
 
 handle_cast(_Request, State) ->
     {noreply, State}.
@@ -93,11 +87,11 @@ handle_cast(_Request, State) ->
 % handle_info
 
 handle_info(connected, State) ->
-    send_handshake(),
+    handshake(State),
     {noreply, State};
 
 handle_info({tcp, _Socket, Packet}, State) ->
-    NewState = handle_tcp(Packet, State),
+    NewState = tcp(State, Packet),
     {noreply, NewState};
 
 handle_info({tcp_closed, _Socket}, State) ->
@@ -110,11 +104,13 @@ handle_info(Request, State) ->
     ?LOG("Unhandled request: ~p", [Request]),
     {noreply, State}.
 
-% private methods
+% register_response_handler
 
-register_transaction_handler(State, Type, Handler) ->
-    TransactionHandlers = [{State#state.transaction_id, {Type, Handler}} | State#state.transaction_handlers],
-    State#state{transaction_handlers=TransactionHandlers}.
+register_response_handler(State, Type) ->
+    ResponseHandlers = [{State#state.transaction_id, Type} | State#state.response_handlers],
+    State#state{response_handlers=ResponseHandlers}.
+
+% connect
 
 connect(Connection) ->
     gen_tcp:connect(Connection#connection.hostname, ?REMOTE_PORT, [
@@ -123,26 +119,16 @@ connect(Connection) ->
         {send_timeout, 2000}
     ]).
 
-send_data(Data) ->
-    gen_server:cast(?MODULE, {send_data, Data}).
+% tcp_send
 
-send_chat(Line) ->
-    gen_server:cast(?MODULE, {send_chat, Line}).
+tcp_send(State, Data) ->
+    gen_tcp:send(State#state.socket, Data),
+    State.
 
-send_handshake() ->
-    Version = 1,
-    SubVersion = 2,
-    send_data(<<"TRTP","HOTL",Version:16,SubVersion:16>>).
+% request
 
-login(State) ->
-    send_request(State, login, [
-        {user_login, State#state.connection#connection.username},
-        {user_password, State#state.connection#connection.password},
-        {user_name, State#state.connection#connection.name},
-        {user_icon_id, State#state.connection#connection.icon}
-    ]).
-
-send_request(State, Operation, Parameters) ->
+request(State, Operation) -> request(State, Operation, []).
+request(State, Operation, Parameters) ->
     Flags = 0,
     IsReply = 0,
     ErrorCode = 0,
@@ -184,26 +170,15 @@ send_request(State, Operation, Parameters) ->
         TotalSize:32,
         ChunkSize:32
     >>,
-    send_data([Header, Data]),
-    {ok, State#state{transaction_id=TransactionId}}.
+    tcp_send(State, [Header, Data]).
 
-% parse_transactions
+% transactions_parse
 
-parse_params(Data) -> lists:reverse(parse_params(Data, [])).
-parse_params(<<>>, Acc) -> Acc;
-parse_params(<<
-    FieldType:16,
-    FieldSize:16,
-    FieldData:FieldSize/binary,
-    Rest/binary
-    >>, Acc) ->
-    parse_params(Rest, [{hotline_constants:field_to_atom(FieldType), FieldData}|Acc]).
-
-parse_transactions(Packet) ->
-    {Transactions, Rest} = parse_transactions(Packet, []),
+transactions_parse(Packet) ->
+    {Transactions, Rest} = transactions_parse(Packet, []),
     {lists:reverse(Transactions), Rest}.
-parse_transactions(<<>>, Transactions) -> {Transactions, <<>>};
-parse_transactions(<<
+transactions_parse(<<>>, Transactions) -> {Transactions, <<>>};
+transactions_parse(<<
         Flags:8,
         IsReply:8,
         OperationCode:16,
@@ -215,48 +190,97 @@ parse_transactions(<<
         Rest/binary
     >>, Transactions) ->
     <<_ParameterCount:16,ParameterData/binary>> = DataPart,
-    parse_transactions(Rest, [#transaction{
+    transactions_parse(Rest, [#transaction{
         flags=Flags,
         is_reply=IsReply,
         operation=hotline_constants:transaction_to_atom(OperationCode),
         id=TransactionId,
         error_code=ErrorCode,
-        parameters=parse_params(ParameterData)
+        parameters=params_parse(ParameterData)
     } | Transactions]);
-parse_transactions(Packet, Transactions) -> {Transactions, Packet}.
+transactions_parse(Packet, Transactions) -> {Transactions, Packet}.
 
-% handle_tcp
+% params_parse
 
-handle_tcp(<<"TRTP",0,0,0,0>>, State = #state{status=connecting}) ->
-    {ok, NewState} = login(State),
-    NewState#state{status=login};
+params_parse(Data) -> lists:reverse(params_parse(Data, [])).
+params_parse(<<>>, Acc) -> Acc;
+params_parse(<<
+    FieldType:16,
+    FieldSize:16,
+    FieldData:FieldSize/binary,
+    Rest/binary
+    >>, Acc) ->
+    params_parse(Rest, [{hotline_constants:field_to_atom(FieldType), FieldData}|Acc]).
 
-handle_tcp(<<"TRTP",Error:32>>, _State = #state{status=connecting}) ->
+% handshake
+
+handshake(State) ->
+    Version = 1,
+    SubVersion = 2,
+    tcp_send(State, <<"TRTP","HOTL",Version:16,SubVersion:16>>).
+
+% requests
+
+login(State) ->
+    Connection = State#state.connection,
+    NewState = request(State, login, [
+        {user_login, Connection#connection.username},
+        {user_password, Connection#connection.password},
+        {user_name, Connection#connection.name},
+        {user_icon_id, Connection#connection.icon}
+    ]),
+    register_response_handler(NewState#state{status=login}, login).
+
+get_user_name_list(State) ->
+    request(State, get_user_name_list).
+
+chat_send(State, Line) ->
+    request(State, chat_send, [
+        {data, Line},
+        {chat_options, 0}
+    ]).
+
+% tcp handlers
+
+tcp(State = #state{status=connecting}, <<"TRTP",0,0,0,0>>) ->
+    login(State);
+
+tcp(_State = #state{status=connecting}, <<"TRTP",Error:32>>) ->
     exit({handshake_error, Error});
 
-handle_tcp(Packet, State) ->
+tcp(State, Packet) ->
     PacketBuffer = State#state.packet_buffer,
-    {Transactions, Rest} = parse_transactions(<<PacketBuffer/binary,Packet/binary>>),
+    {Transactions, Rest} = transactions_parse(<<PacketBuffer/binary,Packet/binary>>),
     NewState = State#state{packet_buffer=Rest},
     lists:foldl(fun (Transaction, CurrentState) ->
-        handle_transaction(CurrentState, Transaction)
+        transaction(CurrentState, Transaction)
     end, NewState, Transactions).
 
-% handle_transaction
+% response handlers
 
-handle_transaction(State, Transaction = #transaction{operation=chat_msg}) ->
+response(State, login, _Transaction) ->
+    get_user_name_list(State);
+
+response(State, Type, Transaction) ->
+    % No handler
+    ?LOG("[RCV ~p] ~p: ~p", [
+        Transaction#transaction.id,
+        Type,
+        Transaction
+    ]),
+    State.
+
+% transaction handlers
+
+transaction(State, Transaction = #transaction{operation=chat_msg}) ->
     Message = binary_to_list(proplists:get_value(data, Transaction#transaction.parameters)),
     ?LOG("~s", [string:strip(Message, left, $\r)]),
     State;
 
-handle_transaction(State, Transaction) ->
+transaction(State, Transaction) ->
     % Check for a transaction handler
     TxnId = Transaction#transaction.id,
-    case proplists:get_value(TxnId, State#state.transaction_handlers) of
-        {_Type, Fun} when is_function(Fun) ->
-            {ok, NewState} = Fun(State),
-            TransactionHandlers = proplists:delete(TxnId, State#state.transaction_handlers),
-            NewState#state{transaction_handlers=TransactionHandlers};
+    case proplists:get_value(TxnId, State#state.response_handlers) of
         undefined ->
             % No handler
             ?LOG("[RCV ~p] ~p: ~p", [
@@ -264,5 +288,9 @@ handle_transaction(State, Transaction) ->
                 Transaction#transaction.operation,
                 Transaction
             ]),
-            State
+            State;
+        Type ->
+            {ok, NewState} = response(State, Type, Transaction),
+            ResponseHandlers = proplists:delete(TxnId, State#state.response_handlers),
+            NewState#state{response_handlers=ResponseHandlers}
     end.
