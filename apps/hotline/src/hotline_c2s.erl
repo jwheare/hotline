@@ -54,7 +54,7 @@ init([]) ->
         username="",
         password="",
         name="Spawnfest [erlang]",
-        icon="25704"
+        icon=25704
     },
     case connect(Connection) of
         {ok, Socket} ->
