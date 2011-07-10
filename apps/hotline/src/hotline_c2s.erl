@@ -13,9 +13,11 @@
 -define(LOG(String), ?LOG(String, [])).
 
 -record(state, {
-    socket,    % tcp socket
-    fsm,       % connected state
-    connection % connection object
+    socket,                  % tcp socket
+    status,                  % connected status
+    connection,              % connection object
+    transaction_id=0,        % unique incrementing id
+    transaction_handlers=[]  % transaction response handlers
 }).
 -record(connection, {
     hostname,
@@ -23,8 +25,7 @@
     username,
     password,
     name,
-    icon,
-    transaction_id=0
+    icon
 }).
 -record(transaction, {
     flags,
@@ -59,7 +60,7 @@ init([]) ->
             self() ! connected,
             {ok, #state{
                 socket=Socket,
-                fsm=connecting,
+                status=connecting,
                 connection=Connection
             }};
         {error, Reason} ->
@@ -130,19 +131,26 @@ send_handshake() ->
     SubVersion = 2,
     send_data(<<"TRTP","HOTL",Version:16,SubVersion:16>>).
 
-login(Connection) ->
-    send_request(Connection, login, [
-        {user_login, Connection#connection.username},
-        {user_password, Connection#connection.password}
+login(State) ->
+    send_request(State, login, [
+        {user_login, State#state.connection#connection.username},
+        {user_password, State#state.connection#connection.password}
     ]).
 
-send_request(Connection, Operation, Parameters) ->
+set_client_user_info(State, Transaction) ->
+    % TODO options/automatic response settings
+    send_request(State, set_client_user_info, [
+        {user_name, State#state.connection#connection.name},
+        {user_icon_id, State#state.connection#connection.icon}
+    ]).
+
+send_request(State, Operation, Parameters) ->
     Flags = 0,
     IsReply = 0,
     ErrorCode = 0,
     
     OperationCode = hotline_constants:transaction_to_code(Operation),
-    TransactionId = Connection#connection.transaction_id + 1,
+    TransactionId = State#state.transaction_id + 1,
     
     ?LOG("[SND ~p] ~p: ~p", [TransactionId, Operation, Parameters]),
     
@@ -169,7 +177,7 @@ send_request(Connection, Operation, Parameters) ->
         ChunkSize:32
     >>,
     send_data([Header, <<ParameterCount:16>>, ParameterData]),
-    Connection#connection{transaction_id=TransactionId}.
+    {ok, State#state{transaction_id=TransactionId}}.
 
 % parse_transactions
 
@@ -205,29 +213,40 @@ parse_transactions(<<
 
 % handle_tcp
 
-handle_tcp(<<"TRTP",0,0,0,0>>, State = #state{fsm=connecting}) ->
-    Connection = login(State#state.connection),
-    State#state{fsm=login, connection=Connection};
+handle_tcp(<<"TRTP",0,0,0,0>>, State = #state{status=connecting}) ->
+    NewState = login(State),
+    TransactionHandlers = [{NewState#state.transaction_id, {login, fun set_client_user_info/2}} | NewState#state.transaction_handlers],
+    NewState#state{status=login, transaction_handlers=TransactionHandlers};
 
-handle_tcp(<<"TRTP",Error:32>>, _State = #state{fsm=connecting}) ->
+handle_tcp(<<"TRTP",Error:32>>, _State = #state{status=connecting}) ->
     exit({handshake_error, Error});
 
 handle_tcp(Packet, State) ->
     lists:foldl(fun (Transaction, CurrentState) ->
-        handle_transaction(Transaction, CurrentState)
+        handle_transaction(CurrentState, Transaction)
     end, State, parse_transactions(Packet)).
 
 % handle_transaction
 
-handle_transaction(Transaction = #transaction{operation=chat_msg}, State) ->
+handle_transaction(State, Transaction = #transaction{operation=chat_msg}) ->
     Message = binary_to_list(proplists:get_value(data, Transaction#transaction.parameters)),
     ?LOG("~s", [string:strip(Message, left, $\r)]),
     State;
 
-handle_transaction(Transaction, State) ->
-    ?LOG("[RCV ~p] ~p: ~p", [
-        Transaction#transaction.transaction_id,
-        Transaction#transaction.operation,
-        Transaction
-    ]),
-    State.
+handle_transaction(State, Transaction) ->
+    % Check for a transaction handler
+    TxnId = Transaction#transaction.transaction_id,
+    case proplists:get_value(TxnId, State#state.transaction_handlers) of
+        {type, Fun} when is_function(Fun) ->
+            {ok, NewState} = Fun(State, Transaction),
+            TransactionHandlers = proplists:delete(TxnId, State#state.transaction_handlers),
+            NewState#state{transaction_handlers=TransactionHandlers};
+        undefined ->
+            % No handler
+            ?LOG("[RCV ~p] ~p: ~p", [
+                TxnId,
+                Transaction#transaction.operation,
+                Transaction
+            ]),
+            State
+    end.
