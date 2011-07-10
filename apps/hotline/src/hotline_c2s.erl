@@ -138,12 +138,7 @@ send_handshake() ->
 login(State) ->
     send_request(State, login, [
         {user_login, State#state.connection#connection.username},
-        {user_password, State#state.connection#connection.password}
-    ]).
-
-set_client_user_info(State) ->
-    % TODO options/automatic response settings
-    send_request(State, set_client_user_info, [
+        {user_password, State#state.connection#connection.password},
         {user_name, State#state.connection#connection.name},
         {user_icon_id, State#state.connection#connection.icon}
     ]).
@@ -218,9 +213,8 @@ parse_transactions(<<
 % handle_tcp
 
 handle_tcp(<<"TRTP",0,0,0,0>>, State = #state{status=connecting}) ->
-    NewState = login(State),
-    NewState2 = register_transaction_handler(NewState, login, fun set_client_user_info/1),
-    NewState2#state{status=login};
+    {ok, NewState} = login(State),
+    NewState#state{status=login};
 
 handle_tcp(<<"TRTP",Error:32>>, _State = #state{status=connecting}) ->
     exit({handshake_error, Error});
