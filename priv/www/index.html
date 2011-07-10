@@ -5,20 +5,25 @@
         <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
         <title>untitled</title>
         <style>
-        #scroll {
+        body {
             font: normal 15px "Consolas", monospace;
-            height: 340px;
         }
+        #scroll {
+            height: 340px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        
         #container {
             margin: 100px auto;
-            width: 640px;
+            width: 800px;
             height: 380px;
         }
         #members {
             width: 200px;
             height: 380px;
             float: right;
-            border-left: 1px solid #000;
+            background-color: #F2F2F2;
         }
         #members ul,
         #members li {
@@ -30,7 +35,7 @@
             color: #000;
         }
         #members .status_1 {
-            color: #ddd;
+            color: #999;
         }
         #members .status_2 {
             color: #D54533;
@@ -38,12 +43,13 @@
         #members .status_3 {
             color: #FC8C7C;
         }
+        
         #input {
-            width: 430px;
+            width: 580px;
             height: 40px;
         }
         #input textarea {
-            width: 430px;
+            width: 580px;
         }
         </style>
     </head>
@@ -108,6 +114,7 @@
                     break;
                 }
             });
+            $('#inputBox').focus();
         </script>
     </body>
 </html>
