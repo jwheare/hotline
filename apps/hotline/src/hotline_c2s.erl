@@ -296,7 +296,8 @@ transaction(State, Transaction) ->
             ?LOG("RCV [~p:~p] ~p", [TxnId, Transaction#transaction.operation, Transaction]),
             State;
         Type ->
-            {ok, NewState} = response(State, Type, Transaction),
+            % Remove response handler and call
             ResponseHandlers = proplists:delete(TxnId, State#state.response_handlers),
-            NewState#state{response_handlers=ResponseHandlers}
+            NewState = State#state{response_handlers=ResponseHandlers},
+            response(NewState, Type, Transaction)
     end.
