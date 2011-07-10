@@ -9,6 +9,8 @@
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
 
 -define(REMOTE_PORT, 5500).
+-define(LOG(String, Params), io:format(String ++ "~n", Params)).
+-define(LOG(String), ?LOG(String, [])).
 
 -record(state, {
     socket,    % tcp socket
@@ -57,7 +59,7 @@ init([]) ->
     end.
 
 terminate(Reason, State) ->
-    io:format("Socket closed: ~p~n", [Reason]),
+    ?LOG("Socket closed: ~p", [Reason]),
     gen_tcp:close(State#state.socket),
     {stop, Reason, State#state.socket}.
 
@@ -75,7 +77,7 @@ handle_call(_Request, _From, State) ->
 % handle_cast
 
 handle_cast({send_data, Data}, State) ->
-    io:format("[SND] ~p~n", [Data]),
+    ?LOG("[SND] ~p", [Data]),
     case gen_tcp:send(State#state.socket, Data) of
         ok              -> {noreply, State};
         {error, Reason} -> {stop, {send_data_error, Reason}, State}
@@ -91,7 +93,6 @@ handle_info(connected, State) ->
     {noreply, State};
 
 handle_info({tcp, _Socket, Packet}, State) ->
-    io:format("[RCV] ~p~n", [Packet]),
     NewState = handle_packet(Packet, State),
     {noreply, NewState};
 
@@ -102,7 +103,7 @@ handle_info({tcp_error, _Socket, Reason}, State) ->
     {stop, {tcp_error, Reason}, State};
 
 handle_info(Request, State) ->
-    io:format("Default info: ~p~n", [Request]),
+    ?LOG("Unhandled request: ~p", [Request]),
     {noreply, State}.
 
 % private methods
@@ -165,7 +166,6 @@ send_request(Connection, Operation, Parameters) ->
 % handshake
 
 handle_packet(<<"TRTP",0,0,0,0>>, State = #state{fsm=connecting}) ->
-    io:format("Received handshake, connected~n"),
     Connection = login(State#state.connection),
     State#state{fsm=login, connection=Connection};
 
