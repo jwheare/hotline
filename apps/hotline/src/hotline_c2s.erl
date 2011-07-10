@@ -190,14 +190,17 @@ send_request(State, Operation, Parameters) ->
 
 parse_params(Data) -> lists:reverse(parse_params(Data, [])).
 parse_params(<<>>, Acc) -> Acc;
-parse_params(ParameterData, Acc) ->
-    <<FieldType:16,FieldSize:16,Rest/binary>> = ParameterData,
-    <<FieldData:FieldSize/binary,RestParams/binary>> = Rest,
-    parse_params(RestParams, [{hotline_constants:field_to_atom(FieldType), FieldData}|Acc]).
+parse_params(<<
+    FieldType:16,
+    FieldSize:16,
+    FieldData:FieldSize/binary,
+    Rest/binary
+    >>, Acc) ->
+    parse_params(Rest, [{hotline_constants:field_to_atom(FieldType), FieldData}|Acc]).
 
 parse_transactions(Packet) ->
-    {Transactions, RestPacket} = parse_transactions(Packet, []),
-    {lists:reverse(Transactions), RestPacket}.
+    {Transactions, Rest} = parse_transactions(Packet, []),
+    {lists:reverse(Transactions), Rest}.
 parse_transactions(<<>>, Transactions) -> {Transactions, <<>>};
 parse_transactions(<<
         Flags:8,
@@ -208,10 +211,10 @@ parse_transactions(<<
         _TotalSize:32,
         DataSize:32,
         DataPart:DataSize/binary,
-        RestPacket/binary
+        Rest/binary
     >>, Transactions) ->
     <<_ParameterCount:16,ParameterData/binary>> = DataPart,
-    parse_transactions(RestPacket, [#transaction{
+    parse_transactions(Rest, [#transaction{
         flags=Flags,
         is_reply=IsReply,
         operation=hotline_constants:transaction_to_atom(OperationCode),
@@ -232,8 +235,8 @@ handle_tcp(<<"TRTP",Error:32>>, _State = #state{status=connecting}) ->
 
 handle_tcp(Packet, State) ->
     PacketBuffer = State#state.packet_buffer,
-    {Transactions, RestPacket} = parse_transactions(<<PacketBuffer/binary,Packet/binary>>),
-    NewState = State#state{packet_buffer=RestPacket},
+    {Transactions, Rest} = parse_transactions(<<PacketBuffer/binary,Packet/binary>>),
+    NewState = State#state{packet_buffer=Rest},
     lists:foldl(fun (Transaction, CurrentState) ->
         handle_transaction(CurrentState, Transaction)
     end, NewState, Transactions).
