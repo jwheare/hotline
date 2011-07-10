@@ -211,12 +211,16 @@ parse_transactions(<<
         parameters=parse_params(ParameterData)
     } | Acc]).
 
+register_transaction_handler(State, Type, Handler) ->
+    TransactionHandlers = [{State#state.transaction_id, {Type, Handler} | State#state.transaction_handlers],
+    State#state{transaction_handlers=TransactionHandlers};
+
 % handle_tcp
 
 handle_tcp(<<"TRTP",0,0,0,0>>, State = #state{status=connecting}) ->
     NewState = login(State),
-    TransactionHandlers = [{NewState#state.transaction_id, {login, fun set_client_user_info/2}} | NewState#state.transaction_handlers],
-    NewState#state{status=login, transaction_handlers=TransactionHandlers};
+    NewState2 = register_transaction_handler(NewState, login, fun set_client_user_info/1)
+    NewState2#state{status=login};
 
 handle_tcp(<<"TRTP",Error:32>>, _State = #state{status=connecting}) ->
     exit({handshake_error, Error});
