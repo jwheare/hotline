@@ -9,7 +9,7 @@
 -export([init/1]).
 
 %% Helper macro for declaring children of supervisor
--define(CHILD(I, Type), {I, {I, start_link, []}, temporary, 5000, Type, [I]}).
+-define(CHILD(I, Type), {I, {I, start_link, []}, permanent, 5000, Type, [I]}).
 
 %% ===================================================================
 %% API functions
@@ -24,7 +24,6 @@ start_link() ->
 
 init([]) ->
     {ok, { {one_for_one, 1, 1}, [
-        ?CHILD(hotline_c2s, worker),
-        ?CHILD(hotline_client, worker)
+        {hotline_web, {hotline_web, start, []}, permanent, 5000, worker, dynamic}
     ]} }.
 

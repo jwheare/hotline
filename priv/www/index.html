@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+
+<html>
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+        <title>untitled</title>
+        <style>
+        #scroll {
+            font: normal 15px "Consolas", monospace;
+            height: 340px;
+        }
+        #container {
+            margin: 100px auto;
+            width: 640px;
+            height: 380px;
+        }
+        #members {
+            width: 200px;
+            height: 380px;
+            float: right;
+            border-left: 1px solid #000;
+        }
+        #members ul,
+        #members li {
+            margin: 0;
+            padding: 3px;
+            list-style: none;
+        }
+        #members .status_0 {
+            color: #000;
+        }
+        #members .status_1 {
+            color: #ddd;
+        }
+        #members .status_2 {
+            color: #D54533;
+        }
+        #members .status_3 {
+            color: #FC8C7C;
+        }
+        #input {
+            width: 430px;
+            height: 40px;
+        }
+        #input textarea {
+            width: 430px;
+        }
+        </style>
+    </head>
+    <body>
+        <div id="container">
+            <div id="members"></div>
+            <div id="scroll"></div>
+            <div id="input">
+                <textarea id="inputBox"></textarea>
+            </div>
+        </div>
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.6.2/jquery.min.js"></script>
+        <script>
+            var ws = new WebSocket("ws://localhost:55500");
+            ws.onopen = function (event) {
+                console.info('WebSocket open', event);
+            };
+            ws.onmessage = function (event) {
+                try {
+                    var message = JSON.parse(event.data);
+                    switch (message.type) {
+                    case "chat_msg":
+                        $('#scroll').append($('<div class="chat">').text(message.msg));
+                        break;
+                    case "socket_closed":
+                        $('#scroll').append($('<div class="disconnected">').text("Disconnected"));
+                        break;
+                    case "user_name_list":
+                        var memberList = $('<ul>');
+                        $.each(message.userlist, function (i, user) {
+                            var member = $('<li>')
+                                .text(user.nick)
+                                .attr('id', 'user_' + user.id)
+                                .addClass('status_' + user.status)
+                                .data('icon', user.icon);
+                            memberList.append(member);
+                        });
+                        $('#members').html(memberList);
+                    }
+                } catch (exception) {
+                    console.error('invalid JSON', event.data, exception);
+                }
+            };
+            ws.onclose = function (event) {
+                console.info('WebSocket closed', event);
+            };
+            ws.onerror = function (event) {
+                console.warn('WebSocket error', event);
+            };
+            function chat (text) {
+                ws.send(JSON.stringify({
+                    "type": "chat_send",
+                    "msg": text
+                }));
+            }
+            $('#inputBox').keypress(function (e) {
+                switch (e.keyCode) {
+                case 13: // RETURN
+                    e.preventDefault();
+                    chat($(this).val());
+                    $(this).val('');
+                    break;
+                }
+            });
+        </script>
+    </body>
+</html>

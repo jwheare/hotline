@@ -3,7 +3,7 @@
 -behaviour(gen_server).
 
 -export([
-    start_link/0,
+    start_link/1,
     stop/0,
     
     transactions_parse/1,
@@ -23,19 +23,20 @@
 
 -record(state, {
     socket,                    % tcp socket
-    status,                    % connected status
+    status=disconnected,       % connected status
     connection,                % connection object
     transaction_id = 0,        % unique incrementing id
     response_handlers = [],    % response transaction handlers
     packet_buffer = <<>>,      % buffer of unparsed packets
     user_list = [],            % users connected to the server
-    chat_subject               % topic of the chat
+    chat_subject,              % topic of the chat
+    websocket                  % pids to send socket data to
 }).
 
 % Public methods
 
-start_link() ->
-    gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
+start_link(WebsocketPid) ->
+    gen_server:start_link({local, ?MODULE}, ?MODULE, [WebsocketPid], []).
 
 stop() ->
     gen_server:call(?MODULE, stop).
@@ -51,7 +52,7 @@ get_user_list() ->
 
 % gen_server callbacks
 
-init([]) ->
+init([WebsocketPid]) ->
     Connection = #connection{
         hostname="hotline.psyjnir.org",
         title="Psyjnir",
@@ -60,13 +61,15 @@ init([]) ->
         name="Gholsbane [erlang]",
         icon=25704
     },
+    monitor(process, WebsocketPid),
     case connect(Connection) of
         {ok, Socket} ->
             self() ! connected,
             {ok, #state{
                 socket=Socket,
                 status=connecting,
-                connection=Connection
+                connection=Connection,
+                websocket=WebsocketPid
             }};
         {error, Reason} ->
             {stop, {connect_error, Reason}}
@@ -74,16 +77,24 @@ init([]) ->
 
 terminate(Reason, State) ->
     ?LOG("Socket closed: ~p", [Reason]),
+    websocket(State, [
+        {type, <<"socket_closed">>}
+    ]),
     gen_tcp:close(State#state.socket),
     {stop, Reason, State#state.socket}.
 
 code_change(_PreviousVersion, State, _Extra) ->
     {ok, State}.
 
+% websocket
+
+websocket(State, Message) ->
+    State#state.websocket ! {hotline_message, Message}.
+
 % handle_call
 
 handle_call(stop, _From, State) ->
-    {stop, normal, ok, State};
+    {stop, normal, stopped, State};
 
 handle_call({chat_send, Line}, _From, State) ->
     NewState = chat_send(State, Line),
@@ -106,8 +117,12 @@ handle_cast(_Request, State) ->
 % handle_info
 
 handle_info(connected, State) ->
+    websocket(State, [{type, <<"handshake">>}]),
     handshake(State),
     {noreply, State};
+
+handle_info({'DOWN', _MonitorRef, _Type, _Pid, _Info}, State) ->
+    {stop, normal, websocket_down, State};
 
 handle_info({tcp, _Socket, Packet}, State) ->
     NewState = tcp(State, Packet),
@@ -247,15 +262,20 @@ handshake(State) ->
 
 login(State) ->
     Connection = State#state.connection,
-    NewState = request_with_handler(State, login, [
+    Params = [
         {user_login, Connection#connection.username},
         {user_password, Connection#connection.password},
         {user_name, Connection#connection.name},
         {user_icon_id, Connection#connection.icon}
-    ]),
+    ],
+    NewState = request_with_handler(State, login, Params),
+    websocket(State, [
+        {type, <<"login">>}
+    ] ++ Params),
     NewState#state{status=login}.
 
 get_user_name_list(State) ->
+    websocket(State, [{type, <<"get_user_name_list">>}]),
     request_with_handler(State, get_user_name_list).
 
 chat_send(State, Line) ->
@@ -263,6 +283,20 @@ chat_send(State, Line) ->
         {data, Line},
         {chat_options, 0}
     ]).
+
+% send_user_list
+
+send_user_list(State) ->
+    websocket(State, [
+        {type, <<"user_name_list">>},
+        {userlist, [[
+            {id, UserId},
+            {nick, User#user.nick},
+            {icon, User#user.icon},
+            {status, User#user.status}
+        ] || {UserId, User} <- State#state.user_list]}
+    ]),
+    State.
 
 % tcp handlers
 
@@ -287,7 +321,7 @@ response(State, login, _Transaction) ->
     
 response(State, get_user_name_list, Transaction) ->
     ChatSubject = proplists:get_value(chat_subject, Transaction#transaction.parameters),
-    NewUserList = [
+    UserList = [
         {UserId, #user{
             id=UserId,
             nick=Nick,
@@ -303,8 +337,8 @@ response(State, get_user_name_list, Transaction) ->
         >>} <- Transaction#transaction.parameters,
         Type =:= user_name_with_info
     ],
-    ?LOG("~p", [NewUserList]),
-    State#state{chat_subject=ChatSubject, user_list=NewUserList};
+    ?LOG("~p", [UserList]),
+    send_user_list(State#state{chat_subject=ChatSubject, user_list=UserList});
 
 response(State, Type, Transaction) ->
     ?LOG("RSP [~p:~p] ~p", [Transaction#transaction.id, Type, Transaction]),
@@ -314,7 +348,12 @@ response(State, Type, Transaction) ->
 
 transaction(State, Transaction = #transaction{operation=chat_msg}) ->
     Message = binary_to_list(proplists:get_value(data, Transaction#transaction.parameters)),
-    ?LOG("~s", [string:strip(Message, left, $\r)]),
+    StrippedMessage = string:strip(Message, left, $\r),
+    ?LOG("~s", [StrippedMessage]),
+    websocket(State, [
+        {type, <<"chat_msg">>},
+        {msg, list_to_binary(StrippedMessage)}
+    ]),
     State;
 
 transaction(State, Transaction = #transaction{operation=notify_change_user}) ->
@@ -340,13 +379,13 @@ transaction(State, Transaction = #transaction{operation=notify_change_user}) ->
             % Modify user
             NewList = lists:keyreplace(UserId, 1, UserList, NewUser)
     end,
-    State#state{user_list=NewList};
+    send_user_list(State#state{user_list=NewList});
 
 transaction(State, Transaction = #transaction{operation=notify_delete_user}) ->
     % Remove from user_list
     <<UserId:16>> = proplists:get_value(user_id, Transaction#transaction.parameters),
     NewList = proplists:delete(UserId, State#state.user_list),
-    State#state{user_list=NewList};
+    send_user_list(State#state{user_list=NewList});
 
 transaction(State, Transaction) ->
     % Check for a transaction handler
