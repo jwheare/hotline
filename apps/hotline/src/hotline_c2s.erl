@@ -26,6 +26,14 @@
     icon,
     transaction_id=0
 }).
+-record(transaction, {
+    flags,
+    is_reply,
+    operation,
+    transaction_id,
+    error_code,
+    parameters
+}).
 
 % Public methods
 
@@ -77,7 +85,6 @@ handle_call(_Request, _From, State) ->
 % handle_cast
 
 handle_cast({send_data, Data}, State) ->
-    ?LOG("[SND] ~p", [Data]),
     case gen_tcp:send(State#state.socket, Data) of
         ok              -> {noreply, State};
         {error, Reason} -> {stop, {send_data_error, Reason}, State}
@@ -93,7 +100,7 @@ handle_info(connected, State) ->
     {noreply, State};
 
 handle_info({tcp, _Socket, Packet}, State) ->
-    NewState = handle_packet(Packet, State),
+    NewState = handle_tcp(Packet, State),
     {noreply, NewState};
 
 handle_info({tcp_closed, _Socket}, State) ->
@@ -134,16 +141,18 @@ send_request(Connection, Operation, Parameters) ->
     IsReply = 0,
     ErrorCode = 0,
     
-    OperationConst = hotline_constants:transaction(Operation),
+    OperationCode = hotline_constants:transaction_to_code(Operation),
     TransactionId = Connection#connection.transaction_id + 1,
+    
+    ?LOG("[SND ~p] ~p: ~p", [TransactionId, Operation, Parameters]),
     
     % Built parameter data
     EncodedParameters = [
-        {hotline_constants:field(ParamK), length(ParamV), list_to_binary(ParamV)}
+        {hotline_constants:field_to_code(ParamK), length(ParamV), list_to_binary(ParamV)}
         || {ParamK, ParamV} <- Parameters
     ],
     
-    ParameterData = [[<<FieldId:16,FieldSize:16>>,FieldData] || {FieldId, FieldSize, FieldData} <- EncodedParameters],
+    ParameterData = [[<<FieldType:16,FieldSize:16>>,FieldData] || {FieldType, FieldSize, FieldData} <- EncodedParameters],
     
     ParameterCount = length(Parameters),
     
@@ -153,7 +162,7 @@ send_request(Connection, Operation, Parameters) ->
     Header = <<
         Flags:8,
         IsReply:8,
-        OperationConst:16,
+        OperationCode:16,
         TransactionId:32,
         ErrorCode:32,
         TotalSize:32,
@@ -162,58 +171,51 @@ send_request(Connection, Operation, Parameters) ->
     send_data([Header, <<ParameterCount:16>>, ParameterData]),
     Connection#connection{transaction_id=TransactionId}.
 
-% parse_packet
+% parse_transactions
 
-parse_params(Data) -> parse_params(Data, []).
+parse_params(Data) -> lists:reverse(parse_params(Data, [])).
 parse_params(<<>>, Acc) -> Acc;
 parse_params(ParameterData, Acc) ->
-    <<FieldId:16,FieldSize:16,Rest/binary>> = ParameterData,
-    ?LOG("Rest:~n~p", [Rest]),
-    FieldBitSize = FieldSize*8,
+    <<FieldType:16,FieldSize:16,Rest/binary>> = ParameterData,
     <<FieldData:FieldSize/binary,RestParams/binary>> = Rest,
-    ?LOG("~nID: ~p Size: ~p/~p~n~p~n~n~p~n", [FieldId, FieldSize, FieldBitSize, FieldData, RestParams]),
-    parse_params(RestParams, [{FieldId, FieldData}|Acc]).
+    parse_params(RestParams, [{hotline_constants:field_to_atom(FieldType), FieldData}|Acc]).
 
-parse_packet(Packet) -> parse_packet(Packet, []).
-parse_packet(<<>>, Acc) -> Acc;
-parse_packet(<<
-    Flags:8,
-    IsReply:8,
-    Operation:16,
-    TransactionId:32,
-    ErrorCode:32,
-    TotalSize:32,
-    DataSize:32,
-    Rest/binary
->>, Acc) ->
-    ?LOG("Packet [~p] ~nOperation: ~p~nFlags: ~p~nIs reply: ~p~nError: ~p~nTotal Size: ~p~nData Size: ~p~n", [TransactionId, Operation, Flags, IsReply, ErrorCode, TotalSize, DataSize]),
+parse_transactions(Packet) -> lists:reverse(parse_transactions(Packet, [])).
+parse_transactions(<<>>, Acc) -> Acc;
+parse_transactions(<<
+        Flags:8,
+        IsReply:8,
+        OperationCode:16,
+        TransactionId:32,
+        ErrorCode:32,
+        _TotalSize:32,
+        DataSize:32,
+        Rest/binary
+    >>, Acc) ->
     <<DataPart:DataSize/binary,RestPacket/binary>> = Rest,
-    <<ParameterCount:16,ParameterData/binary>> = DataPart,
-    ?LOG("Packetdata (~p):~n~p~n", [ParameterCount, ParameterData]),
-    parse_packet(RestPacket, [
-        {flags, Flags},
-        {is_reply, IsReply},
-        {operation, Operation},
-        {transaction_id, TransactionId},
-        {error_code, ErrorCode},
-        {total_size, TotalSize},
-        {data_size, DataSize},
-        {parameter_count, ParameterCount},
-        {parameter_data, parse_params(ParameterData)}
-    | Acc]).
+    <<_ParameterCount:16,ParameterData/binary>> = DataPart,
+    parse_transactions(RestPacket, [#transaction{
+        flags=Flags,
+        is_reply=IsReply,
+        operation=hotline_constants:transaction_to_atom(OperationCode),
+        transaction_id=TransactionId,
+        error_code=ErrorCode,
+        parameters=parse_params(ParameterData)
+    } | Acc]).
 
-% handle_packet
+% handle_tcp
 
-% handshake
-
-handle_packet(<<"TRTP",0,0,0,0>>, State = #state{fsm=connecting}) ->
+handle_tcp(<<"TRTP",0,0,0,0>>, State = #state{fsm=connecting}) ->
     Connection = login(State#state.connection),
     State#state{fsm=login, connection=Connection};
 
-handle_packet(<<"TRTP",Error:32>>, _State = #state{fsm=connecting}) ->
+handle_tcp(<<"TRTP",Error:32>>, _State = #state{fsm=connecting}) ->
     exit({handshake_error, Error});
 
-% default
+handle_tcp(Packet, State) ->
+    lists:foldl(fun (Transaction, CurrentState) ->
+        handle_transaction(Transaction, CurrentState)
+    end, State, parse_transactions(Packet)).
 
 handle_packet(Packet, State) ->
     parse_packet(Packet),
