@@ -154,17 +154,26 @@ send_request(State, Operation, Parameters) ->
     ?LOG("[SND ~p] ~p: ~p", [TransactionId, Operation, Parameters]),
     
     % Built parameter data
-    EncodedParameters = [
-        {hotline_constants:field_to_code(ParamK), length(ParamV), list_to_binary(ParamV)}
-        || {ParamK, ParamV} <- Parameters
-    ],
-    
-    ParameterData = [[<<FieldType:16,FieldSize:16>>,FieldData] || {FieldType, FieldSize, FieldData} <- EncodedParameters],
+    ParameterData = lists:map(fun ({ParamK, ParamV}) ->
+        Type = hotline_constants:field_to_code(ParamK),
+        case ParamV of
+            ParamV when is_integer(ParamV) ->
+                Size = 4,
+                Data = <<ParamV:32>>;
+            ParamV when is_list(ParamV) ->
+                Data = list_to_binary(ParamV),
+                Size = size(Data);
+            ParamV when is_binary(ParamV) ->
+                Data = ParamV,
+                Size = size(Data)
+        end,
+        <<Type:16,Size:16,Data/binary>>
+    end, Parameters),
     
     ParameterCount = length(Parameters),
     
-    TotalSize = length(ParameterData),
-    ChunkSize = length(ParameterData),
+    TotalSize = iolist_size(ParameterData),
+    ChunkSize = TotalSize,
     
     Header = <<
         Flags:8,
