@@ -217,6 +217,12 @@ handle_tcp(Packet, State) ->
         handle_transaction(Transaction, CurrentState)
     end, State, parse_transactions(Packet)).
 
-handle_packet(Packet, State) ->
-    parse_packet(Packet),
+% handle_packet
+
+handle_transaction(Transaction, State) ->
+    ?LOG("[RCV ~p] ~p: ~p", [
+        Transaction#transaction.transaction_id,
+        Transaction#transaction.operation,
+        Transaction
+    ]),
     State.
