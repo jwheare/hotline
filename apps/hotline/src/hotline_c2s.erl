@@ -217,7 +217,12 @@ handle_tcp(Packet, State) ->
         handle_transaction(Transaction, CurrentState)
     end, State, parse_transactions(Packet)).
 
-% handle_packet
+% handle_transaction
+
+handle_transaction(Transaction = #transaction{operation=chat_msg}, State) ->
+    Message = binary_to_list(proplists:get_value(data, Transaction#transaction.parameters)),
+    ?LOG("~s", [string:strip(Message, left, $\r)]),
+    State;
 
 handle_transaction(Transaction, State) ->
     ?LOG("[RCV ~p] ~p: ~p", [
