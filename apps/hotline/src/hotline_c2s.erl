@@ -182,7 +182,7 @@ request(State, Operation, Parameters) ->
         TotalSize:32,
         ChunkSize:32
     >>,
-    tcp_send(State, [Header, Data]).
+    tcp_send(State#state{transaction_id=TransactionId}, [Header, Data]).
 
 % transactions_parse
 
