@@ -148,7 +148,7 @@ request(State, Operation, Parameters) ->
     OperationCode = hotline_constants:transaction_to_code(Operation),
     TransactionId = State#state.transaction_id + 1,
     
-    ?LOG("[SND ~p] ~p: ~p", [TransactionId, Operation, Parameters]),
+    ?LOG("SND [~p:~p] ~p", [TransactionId, Operation, Parameters]),
     
     % Built parameter data
     ParameterData = lists:map(fun ({ParamK, ParamV}) ->
@@ -271,15 +271,13 @@ tcp(State, Packet) ->
 % response handlers
 
 response(State, login, _Transaction) ->
-    get_user_name_list(State);
+    get_user_name_list(State#state{status=connected});
+    
+% response(State, get_user_name_list, Transaction) ->
+%     State.
 
 response(State, Type, Transaction) ->
-    % No handler
-    ?LOG("[RCV ~p] ~p: ~p", [
-        Transaction#transaction.id,
-        Type,
-        Transaction
-    ]),
+    ?LOG("RSP [~p:~p] ~p", [Transaction#transaction.id, Type, Transaction]),
     State.
 
 % transaction handlers
@@ -294,12 +292,8 @@ transaction(State, Transaction) ->
     TxnId = Transaction#transaction.id,
     case proplists:get_value(TxnId, State#state.response_handlers) of
         undefined ->
-            % No handler
-            ?LOG("[RCV ~p] ~p: ~p", [
-                TxnId,
-                Transaction#transaction.operation,
-                Transaction
-            ]),
+            % No response handler
+            ?LOG("RCV [~p:~p] ~p", [TxnId, Transaction#transaction.operation, Transaction]),
             State;
         Type ->
             {ok, NewState} = response(State, Type, Transaction),
