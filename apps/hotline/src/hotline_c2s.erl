@@ -19,6 +19,7 @@
 -include("hotline.hrl").
 
 -define(REMOTE_PORT, 5500).
+-define(SERVER_VERSION, 185).
 -define(LOG(String, Params), io:format(String ++ "~n", Params)).
 -define(LOG(String), ?LOG(String, [])).
 
@@ -277,7 +278,12 @@ params_parse(<<
     FieldData:FieldSize/binary,
     Rest/binary
     >>, Acc) ->
-    params_parse(Rest, [{hotline_constants:field_to_atom(FieldType), FieldData}|Acc]).
+    params_parse(Rest, [{hotline_constants:field_to_atom(FieldType), FieldData} | Acc]).
+
+% encode
+
+encode_string(String) ->
+    [Char bxor 16#FF || Char <- String].
 
 % handshake
 
@@ -292,10 +298,11 @@ handshake(State) ->
 login(State) ->
     Connection = State#state.connection,
     Params = [
-        {user_login, Connection#connection.username},
-        {user_password, Connection#connection.password},
+        {user_login, encode_string(Connection#connection.username)},
+        {user_password, encode_string(Connection#connection.password)},
         {user_name, Connection#connection.name},
-        {user_icon_id, Connection#connection.icon}
+        {user_icon_id, Connection#connection.icon},
+        {vers, ?SERVER_VERSION}
     ],
     NewState = request_with_handler(State, login, Params),
     NewState2 = ws(NewState, [
