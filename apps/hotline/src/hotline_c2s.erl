@@ -193,7 +193,6 @@ request_with_handler(State, Operation, Parameters) ->
     NewState = request(State, Operation, Parameters),
     register_response_handler(NewState, Operation).
 
-request(State, Operation) -> request(State, Operation, []).
 request(State, Operation, Parameters) ->
     Flags = 0,
     IsReply = 0,
