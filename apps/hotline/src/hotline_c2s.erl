@@ -294,7 +294,7 @@ login(State) ->
     Params = [
         {user_login, Connection#connection.username},
         {user_password, Connection#connection.password},
-        {user_name, list_to_binary(Connection#connection.name)},
+        {user_name, Connection#connection.name},
         {user_icon_id, Connection#connection.icon}
     ],
     NewState = request_with_handler(State, login, Params),
