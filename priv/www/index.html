@@ -70,6 +70,7 @@
             ws.onmessage = function (event) {
                 try {
                     var message = JSON.parse(event.data);
+                    console.log(event.data);
                     switch (message.type) {
                     case "chat_msg":
                         $('#scroll').append($('<div class="chat">').text(message.msg));
