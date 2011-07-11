@@ -48,7 +48,7 @@ wsloop_active0(WSReq) ->
         %% Important to catch these and terminate, or we'll end up with an
         %% orphan process that will crash next time it tries to :send
         {'EXIT', _, Reason} ->
-            io:format("WS LOOP exiting, reason ~p", [Reason]),
+            io:format("WS LOOP exiting, reason ~p~n", [Reason]),
             ok
     after 29000 ->
         %% Some aggressive proxies may disconnect if no traffic for 30 secs

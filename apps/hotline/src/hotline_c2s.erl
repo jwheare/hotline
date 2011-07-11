@@ -122,7 +122,7 @@ handle_info(connected, State) ->
     {noreply, State};
 
 handle_info({'DOWN', _MonitorRef, _Type, _Pid, _Info}, State) ->
-    {stop, normal, websocket_down, State};
+    {stop, normal, State};
 
 handle_info({tcp, _Socket, Packet}, State) ->
     NewState = tcp(State, Packet),
