@@ -20,7 +20,7 @@
             height: 380px;
         }
         #members {
-            width: 200px;
+            width: 232px;
             height: 380px;
             float: right;
             background-color: #F2F2F2;
@@ -28,8 +28,15 @@
         #members ul,
         #members li {
             margin: 0;
-            padding: 3px;
+            padding: 0;
             list-style: none;
+        }
+        #members li {
+            overflow: hidden;
+            height: 14px;
+            padding: 2px 2px 2px 35px;
+            font: normal 11px/14px "Lucida Grande", "Verdana", sans-serif;
+            background-repeat: no-repeat;
         }
         #members .status_0 {
             color: #000;
@@ -45,11 +52,11 @@
         }
         
         #input {
-            width: 580px;
+            width: 548px;
             height: 40px;
         }
         #input textarea {
-            width: 580px;
+            width: 548px;
         }
         </style>
     </head>
@@ -91,7 +98,8 @@
                                 .text(user.nick)
                                 .attr('id', 'user_' + user.id)
                                 .addClass('status_' + user.status)
-                                .data('icon', user.icon);
+                                .data('icon', user.icon)
+                                .css('background-image', 'url(/icons/'+user.icon+'.gif)');
                             memberList.append(member);
                         });
                         $('#members').html(memberList);
