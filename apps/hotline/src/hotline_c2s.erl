@@ -302,7 +302,7 @@ login(State) ->
         {type, <<"login">>},
         {login, list_to_binary(Connection#connection.username)},
         {username, list_to_binary(Connection#connection.name)},
-        {icon, list_to_binary(Connection#connection.icon)}
+        {icon, Connection#connection.icon}
     ]),
     NewState2#state{status=login}.
 
