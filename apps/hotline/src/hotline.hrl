@@ -1,8 +1,8 @@
 -record(connection, {
     hostname,
     title,
-    username,
-    password,
+    username = <<>>,
+    password = <<>>,
     name,
     icon
 }).

@@ -57,12 +57,10 @@ register_websocket(Pid) ->
 
 init([]) ->
     Connection = #connection{
-        hostname="livebus.org",
-        title="Livebus",
-        username="",
-        password="",
-        name="Spawnfest User",
-        icon=150
+        hostname = <<"livebus.org">>,
+        title    = <<"Livebus">>,
+        name     = <<"Spawnfest User">>,
+        icon     = 150
     },
     case connect(Connection) of
         {ok, Socket} ->
@@ -143,8 +141,8 @@ handle_cast(_Request, State) ->
 handle_info(connected, State) ->
     NewState = ws(State, [
         {type, <<"handshake">>},
-        {hostname, list_to_binary(State#state.connection#connection.hostname)},
-        {title, list_to_binary(State#state.connection#connection.title)}
+        {hostname, State#state.connection#connection.hostname},
+        {title, State#state.connection#connection.title}
     ]),
     handshake(NewState),
     {noreply, NewState};
@@ -176,7 +174,7 @@ register_response_handler(State, Type) ->
 % connect
 
 connect(Connection) ->
-    gen_tcp:connect(Connection#connection.hostname, ?REMOTE_PORT, [
+    gen_tcp:connect(binary_to_list(Connection#connection.hostname), ?REMOTE_PORT, [
         binary,
         {active, true},
         {send_timeout, 2000}
@@ -282,8 +280,8 @@ params_parse(<<
 
 % encode
 
-encode_string(String) ->
-    [Char bxor 16#FF || Char <- String].
+encode_binary_string(BinaryString) ->
+    [Char bxor 16#FF || <<Char>> <= BinaryString].
 
 % handshake
 
@@ -298,8 +296,8 @@ handshake(State) ->
 login(State) ->
     Connection = State#state.connection,
     Params = [
-        {user_login, encode_string(Connection#connection.username)},
-        {user_password, encode_string(Connection#connection.password)},
+        {user_login, encode_binary_string(Connection#connection.username)},
+        {user_password, encode_binary_string(Connection#connection.password)},
         {user_name, Connection#connection.name},
         {user_icon_id, Connection#connection.icon},
         {vers, ?SERVER_VERSION}
@@ -307,8 +305,8 @@ login(State) ->
     NewState = request_with_handler(State, login, Params),
     NewState2 = ws(NewState, [
         {type, <<"login">>},
-        {login, list_to_binary(Connection#connection.username)},
-        {username, list_to_binary(Connection#connection.name)},
+        {login, Connection#connection.username},
+        {username, Connection#connection.name},
         {icon, Connection#connection.icon}
     ]),
     NewState2#state{status=login}.
@@ -385,12 +383,11 @@ response(State, Type, Transaction) ->
 % transaction handlers
 
 transaction(State, Transaction = #transaction{operation=chat_msg}) ->
-    Message = binary_to_list(proplists:get_value(data, Transaction#transaction.parameters)),
-    StrippedMessage = string:strip(Message, left, $\r),
-    ?LOG("~s", [StrippedMessage]),
+    Message = proplists:get_value(data, Transaction#transaction.parameters),
+    ?LOG("~s", [Message]),
     ws(State, [
         {type, <<"chat_msg">>},
-        {msg, list_to_binary(StrippedMessage)}
+        {msg, Message}
     ]);
 
 transaction(State, Transaction = #transaction{operation=notify_change_user}) ->
