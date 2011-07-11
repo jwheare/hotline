@@ -416,6 +416,18 @@ transaction(State, Transaction = #transaction{operation=server_msg}) ->
         {msg, Message}
     ]);
 
+transaction(State, Transaction = #transaction{operation=invite_to_chat}) ->
+    <<ChatId:32>> = proplists:get_value(chat_id,   Transaction#transaction.parameters),
+    <<FromId:16>> = proplists:get_value(user_id,   Transaction#transaction.parameters),
+    From          = proplists:get_value(user_name, Transaction#transaction.parameters),
+    ?LOG("Invite [~s] ~B", [From, ChatId]),
+    ws(State, [
+        {type, <<"invite_to_chat">>},
+        {chat_id, ChatId},
+        {from_id, FromId},
+        {from, From}
+    ]);
+
 transaction(State, Transaction = #transaction{operation=notify_change_user}) ->
     % Construct a user record
     Params = Transaction#transaction.parameters,
