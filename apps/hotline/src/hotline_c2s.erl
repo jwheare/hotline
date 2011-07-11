@@ -299,8 +299,11 @@ login(State) ->
     ],
     NewState = request_with_handler(State, login, Params),
     NewState2 = ws(NewState, [
-        {type, <<"login">>}
-    ] ++ Params),
+        {type, <<"login">>},
+        {login, list_to_binary(Connection#connection.username)},
+        {username, list_to_binary(Connection#connection.name)},
+        {icon, list_to_binary(Connection#connection.icon)}
+    ]),
     NewState2#state{status=login}.
 
 get_user_name_list(State) ->
