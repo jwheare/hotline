@@ -3,15 +3,16 @@
 -behaviour(gen_server).
 
 -export([
-    start_link/1,
+    start_link/0,
     stop/0,
+    
+    register_websocket/1,
     
     transactions_parse/1,
     
     chat_send/1,
     
-    get_state/0,
-    get_user_list/0
+    get_state/0
 ]).
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
 
@@ -30,13 +31,14 @@
     packet_buffer = <<>>,      % buffer of unparsed packets
     user_list = [],            % users connected to the server
     chat_subject,              % topic of the chat
-    websocket                  % pids to send socket data to
+    websockets = [],           % pids to send socket data to
+    backlog = []               % event backlog for the active session
 }).
 
 % Public methods
 
-start_link(WebsocketPid) ->
-    gen_server:start_link({local, ?MODULE}, ?MODULE, [WebsocketPid], []).
+start_link() ->
+    gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
 
 stop() ->
     gen_server:call(?MODULE, stop).
@@ -47,12 +49,12 @@ chat_send(Line) ->
 get_state() ->
     gen_server:call(?MODULE, get_state).
     
-get_user_list() ->
-    gen_server:call(?MODULE, get_user_list).
+register_websocket(Pid) ->
+    gen_server:cast(?MODULE, {register_websocket, Pid}).
 
 % gen_server callbacks
 
-init([WebsocketPid]) ->
+init([]) ->
     Connection = #connection{
         hostname="livebus.org",
         title="Livebus",
@@ -61,15 +63,13 @@ init([WebsocketPid]) ->
         name="Spawnfest User",
         icon=150
     },
-    monitor(process, WebsocketPid),
     case connect(Connection) of
         {ok, Socket} ->
             self() ! connected,
             {ok, #state{
                 socket=Socket,
                 status=connecting,
-                connection=Connection,
-                websocket=WebsocketPid
+                connection=Connection
             }};
         {error, Reason} ->
             {stop, {connect_error, Reason}}
@@ -77,19 +77,34 @@ init([WebsocketPid]) ->
 
 terminate(Reason, State) ->
     ?LOG("Socket closed: ~p", [Reason]),
-    websocket(State, [
+    NewState = ws(State, [
         {type, <<"socket_closed">>}
     ]),
-    gen_tcp:close(State#state.socket),
-    {stop, Reason, State#state.socket}.
+    gen_tcp:close(NewState#state.socket),
+    NewState2 = NewState#state{
+        socket = undefined,
+        status = disconnected,
+        connection = undefined,
+        transaction_id = 0,
+        response_handlers = [],
+        packet_buffer = <<>>,
+        user_list = [],
+        chat_subject = undefined
+    },
+    {stop, Reason, NewState2}.
 
 code_change(_PreviousVersion, State, _Extra) ->
     {ok, State}.
 
-% websocket
+% ws
 
-websocket(State, Message) ->
-    State#state.websocket ! {hotline_message, Message}.
+ws(State, Message) ->
+    lists:foreach(fun (WebSocket) ->
+        WebSocket ! {hotline_message, Message}
+    end, State#state.websockets),
+    % Append to backlog
+    Backlog = lists:append(State#state.backlog, [Message]),
+    State#state{backlog=Backlog}.
 
 % handle_call
 
@@ -103,26 +118,35 @@ handle_call({chat_send, Line}, _From, State) ->
 handle_call(get_state, _From, State) ->
     {reply, State, State};
 
-handle_call(get_user_list, _From, State) ->
-    {reply, State#state.user_list, State};
-
 handle_call(_Request, _From, State) ->
     {reply, ok, State}.
 
 % handle_cast
 
+handle_cast({register_websocket, Pid}, State) ->
+    % Monitory for unregistering
+    monitor(process, Pid),
+    % Send backlog
+    lists:foreach(fun (Message) ->
+        Pid ! {hotline_message, Message}
+    end, State#state.backlog),
+    % Register
+    WebSockets = [Pid | State#state.websockets],
+    {noreply, State#state{websockets=WebSockets}};
+    
 handle_cast(_Request, State) ->
     {noreply, State}.
 
 % handle_info
 
 handle_info(connected, State) ->
-    websocket(State, [{type, <<"handshake">>}]),
-    handshake(State),
-    {noreply, State};
-
-handle_info({'DOWN', _MonitorRef, _Type, _Pid, _Info}, State) ->
-    {stop, normal, State};
+    NewState = ws(State, [
+        {type, <<"handshake">>},
+        {hostname, list_to_binary(State#state.connection#connection.hostname)},
+        {title, list_to_binary(State#state.connection#connection.title)}
+    ]),
+    handshake(NewState),
+    {noreply, NewState};
 
 handle_info({tcp, _Socket, Packet}, State) ->
     NewState = tcp(State, Packet),
@@ -133,6 +157,10 @@ handle_info({tcp_closed, _Socket}, State) ->
 
 handle_info({tcp_error, _Socket, Reason}, State) ->
     {stop, {tcp_error, Reason}, State};
+
+handle_info({'DOWN', _MonitorRef, _Type, Pid, _Info}, State) ->
+    WebSockets = lists:delete(Pid, State#state.websockets),
+    {noreply, State#state{websockets=WebSockets}};
 
 handle_info(Request, State) ->
     ?LOG("Unhandled request: ~p", [Request]),
@@ -256,6 +284,7 @@ params_parse(<<
 handshake(State) ->
     Version = 1,
     SubVersion = 2,
+    ?LOG("Handshaking ~p", [State#state.connection#connection.hostname]),
     tcp_send(State, <<"TRTP","HOTL",Version:16,SubVersion:16>>).
 
 % requests
@@ -269,14 +298,14 @@ login(State) ->
         {user_icon_id, Connection#connection.icon}
     ],
     NewState = request_with_handler(State, login, Params),
-    websocket(State, [
+    NewState2 = ws(NewState, [
         {type, <<"login">>}
     ] ++ Params),
-    NewState#state{status=login}.
+    NewState2#state{status=login}.
 
 get_user_name_list(State) ->
-    websocket(State, [{type, <<"get_user_name_list">>}]),
-    request_with_handler(State, get_user_name_list).
+    NewState = ws(State, [{type, <<"get_user_name_list">>}]),
+    request_with_handler(NewState, get_user_name_list).
 
 chat_send(State, Line) ->
     request(State, chat_send, [
@@ -287,7 +316,7 @@ chat_send(State, Line) ->
 % send_user_list
 
 send_user_list(State) ->
-    websocket(State, [
+    ws(State, [
         {type, <<"user_name_list">>},
         {userlist, [[
             {id, UserId},
@@ -295,8 +324,7 @@ send_user_list(State) ->
             {icon, User#user.icon},
             {status, User#user.status}
         ] || {UserId, User} <- State#state.user_list]}
-    ]),
-    State.
+    ]).
 
 % tcp handlers
 
@@ -350,11 +378,10 @@ transaction(State, Transaction = #transaction{operation=chat_msg}) ->
     Message = binary_to_list(proplists:get_value(data, Transaction#transaction.parameters)),
     StrippedMessage = string:strip(Message, left, $\r),
     ?LOG("~s", [StrippedMessage]),
-    websocket(State, [
+    ws(State, [
         {type, <<"chat_msg">>},
         {msg, list_to_binary(StrippedMessage)}
-    ]),
-    State;
+    ]);
 
 transaction(State, Transaction = #transaction{operation=notify_change_user}) ->
     % Construct a user record

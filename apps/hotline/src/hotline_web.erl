@@ -24,7 +24,7 @@ stop() ->
     mochiweb_http:stop(?MODULE).
 
 wsloop_active(WSReq) ->
-    hotline_c2s:start_link(self()),
+    hotline_c2s:register_websocket(self()),
     wsloop_active0(WSReq).
 
 wsloop_active0(WSReq) ->
