@@ -144,16 +144,19 @@
                     break;
                 case "handshake":
                     $('title').text(message.hostname + ' | Hotline');
-                    $('#scroll').append($('<div class="chat">').text("Handshaking…"));
+                    $('#scroll').append($('<div class="status">').text("Handshaking…"));
                     break;
                 case "login":
-                    $('#scroll').append($('<div class="chat">').text("Logging in…"));
+                    $('#scroll').append($('<div class="status">').text("Logging in…"));
                     break;
                 case "logged_in":
-                    $('#scroll').append($('<div class="chat">').text("Logged in."));
+                    $('#scroll').append($('<div class="status">').text("Logged in."));
                     break;
                 case "chat_msg":
                     $('#scroll').append($('<div class="chat">').text(message.msg));
+                    break;
+                case "server_msg":
+                    $('#scroll').append($('<div class="pm">').text('[' + message.from + '] ' + message.msg));
                     break;
                 case "get_msgs":
                     $('#news').text(message.messages.replace(/\r\n/g, '\n').replace(/\r/g, '\n'));
