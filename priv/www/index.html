@@ -72,6 +72,12 @@
                     var message = JSON.parse(event.data);
                     console.log(event.data);
                     switch (message.type) {
+                    case "handshake":
+                        $('#scroll').append($('<div class="chat">').text("Handshaking…"));
+                        break;
+                    case "login":
+                        $('#scroll').append($('<div class="chat">').text("Logging in…"));
+                        break;
                     case "chat_msg":
                         $('#scroll').append($('<div class="chat">').text(message.msg));
                         break;
