@@ -7,17 +7,44 @@
         <style>
         body {
             margin: 0;
-            padding: 0;
+            padding: 20px;
+            font: normal 13px "Consolas", monospace;
         }
+        
+        /* scrollbars */
+        
+        ::-webkit-scrollbar {
+            width: 14px;
+            height: 10px;
+        }
+        ::-webkit-scrollbar-track-piece {
+            background-color: #eee;
+            background-clip: padding-box;
+            -webkit-background-clip: padding-box;
+            border: 3px solid #fff;
+            border-radius: 6px;
+            -webkit-border-radius: 6px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background-color: #527dff;
+            background-clip: padding-box;
+            -webkit-background-clip: padding-box;
+            border: 3px solid #fff;
+            border-radius: 6px;
+            -webkit-border-radius: 6px;
+        }
+        ::-webkit-scrollbar-thumb:window-inactive {
+            background-color: #bbb;
+        }
+        
         #scroll {
             height: 340px;
             white-space: pre-wrap;
             word-wrap: break-word;
-            font: normal 13px "Consolas", monospace;
         }
         
         #container {
-            margin: 100px auto;
+            margin: 0 auto;
             width: 800px;
             height: 380px;
         }
@@ -25,7 +52,6 @@
             width: 232px;
             height: 380px;
             float: right;
-            background-color: #F2F2F2;
         }
         #members ul,
         #members li {
@@ -60,6 +86,25 @@
         #input textarea {
             width: 548px;
         }
+        
+        #news {
+            margin-top: 10px;
+            padding: 10px;
+            height: 300px;
+            overflow: auto;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            border-radius: 5px;
+            background-color: #ddd;
+        }
+        
+        #news::-webkit-scrollbar-track-piece {
+            border-color: #ddd;
+            background-color: #bbb;
+        }
+        #news::-webkit-scrollbar-thumb {
+            border-color: #ddd;
+        }
         </style>
     </head>
     <body>
@@ -69,6 +114,7 @@
             <div id="input">
                 <textarea id="inputBox"></textarea>
             </div>
+            <div id="news"></div>
         </div>
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.6.2/jquery.min.js"></script>
         <script>
@@ -79,37 +125,11 @@
             ws.onmessage = function (event) {
                 try {
                     var message = JSON.parse(event.data);
-                    console.log(event.data);
-                    switch (message.type) {
-                    case "handshake":
-                        $('title').text(message.hostname + ' | Hotline');
-                        $('#scroll').append($('<div class="chat">').text("Handshaking…"));
-                        break;
-                    case "login":
-                        $('#scroll').append($('<div class="chat">').text("Logging in…"));
-                        break;
-                    case "chat_msg":
-                        $('#scroll').append($('<div class="chat">').text(message.msg));
-                        break;
-                    case "socket_closed":
-                        $('#scroll').append($('<div class="disconnected">').text("Disconnected"));
-                        break;
-                    case "user_name_list":
-                        var memberList = $('<ul>');
-                        $.each(message.userlist, function (i, user) {
-                            var member = $('<li>')
-                                .text(user.nick)
-                                .attr('id', 'user_' + user.id)
-                                .addClass('status_' + user.status)
-                                .data('icon', user.icon)
-                                .css('background-image', 'url(/icons/'+user.icon+'.gif)');
-                            memberList.append(member);
-                        });
-                        $('#members').html(memberList);
-                    }
                 } catch (exception) {
                     console.error('invalid JSON', event.data, exception);
+                    return;
                 }
+                handle_message(message);
             };
             ws.onclose = function (event) {
                 console.info('WebSocket closed', event);
@@ -117,6 +137,48 @@
             ws.onerror = function (event) {
                 console.warn('WebSocket error', event);
             };
+            function handle_message (message) {
+                switch (message.type) {
+                case "idle":
+                    // Just to keep the socket alive
+                    break;
+                case "handshake":
+                    $('title').text(message.hostname + ' | Hotline');
+                    $('#scroll').append($('<div class="chat">').text("Handshaking…"));
+                    break;
+                case "login":
+                    $('#scroll').append($('<div class="chat">').text("Logging in…"));
+                    break;
+                case "logged_in":
+                    $('#scroll').append($('<div class="chat">').text("Logged in."));
+                    break;
+                case "chat_msg":
+                    $('#scroll').append($('<div class="chat">').text(message.msg));
+                    break;
+                case "get_msgs":
+                    $('#news').text(message.messages.replace(/\r\n/g, '\n').replace(/\r/g, '\n'));
+                    break;
+                case "socket_closed":
+                    $('#scroll').append($('<div class="disconnected">').text("Disconnected"));
+                    break;
+                case "user_name_list":
+                    var memberList = $('<ul>');
+                    $.each(message.userlist, function (i, user) {
+                        var member = $('<li>')
+                            .text(user.nick)
+                            .attr('id', 'user_' + user.id)
+                            .addClass('status_' + user.status)
+                            .data('icon', user.icon)
+                            .css('background-image', 'url(/icons/'+user.icon+'.gif)');
+                        memberList.append(member);
+                    });
+                    $('#members').html(memberList);
+                    break;
+                default:
+                    console.log(event.data);
+                    break;
+                }
+            }
             function chat (text) {
                 ws.send(JSON.stringify({
                     "type": "chat_send",

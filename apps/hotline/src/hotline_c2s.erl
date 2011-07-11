@@ -311,8 +311,10 @@ login(State) ->
     NewState2#state{status=login}.
 
 get_user_name_list(State) ->
-    NewState = ws(State, [{type, <<"get_user_name_list">>}]),
-    request_with_handler(NewState, get_user_name_list).
+    request_with_handler(State, get_user_name_list).
+
+get_messages(State) ->
+    request_with_handler(State, get_msgs).
 
 chat_send(State, Line) ->
     request(State, chat_send, [
@@ -352,7 +354,13 @@ tcp(State, Packet) ->
 % response handlers
 
 response(State, login, _Transaction) ->
-    get_user_name_list(State#state{status=connected});
+    NewState = State#state{status=connected},
+    NewState2 = ws(NewState, [
+        {type, <<"logged_in">>}
+    ]),
+    NewState3 = get_user_name_list(NewState2),
+    NewState4 = get_messages(NewState3),
+    NewState4;
     
 response(State, get_user_name_list, Transaction) ->
     ChatSubject = proplists:get_value(chat_subject, Transaction#transaction.parameters),
@@ -374,6 +382,13 @@ response(State, get_user_name_list, Transaction) ->
     ],
     ?LOG("~p", [UserList]),
     send_user_list(State#state{chat_subject=ChatSubject, user_list=UserList});
+
+response(State, get_msgs, Transaction) ->
+    Messages = proplists:get_value(data, Transaction#transaction.parameters),
+    ws(State, [
+        {type, <<"get_msgs">>},
+        {messages, Messages}
+    ]);
 
 response(State, Type, Transaction) ->
     ?LOG("RSP [~p:~p] ~p", [Transaction#transaction.id, Type, Transaction]),
