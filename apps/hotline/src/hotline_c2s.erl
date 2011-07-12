@@ -67,7 +67,7 @@ init([]) ->
     Connection = #connection{
         hostname = <<"livebus.org">>,
         title    = <<"Livebus">>,
-        name     = <<"Spawnfest User">>,
+        name     = <<"Erlanger">>,
         icon     = 150
     },
     case connect(Connection) of
