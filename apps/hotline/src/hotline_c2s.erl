@@ -96,15 +96,18 @@ code_change(_PreviousVersion, State, _Extra) ->
     {ok, State}.
 
 
-% get_timestamp
+% time functions
 
-to_unix_timestamp({MegaSecs, Secs, _MicroSecs}) ->
+epoch () ->
+    now_to_seconds(now()).
+
+now_to_seconds({MegaSecs, Secs, _MicroSecs}) ->
     (MegaSecs*1000000) + Secs.
 
 % ws
 
 ws(State, Message) ->
-    MessageWithTime = Message ++ [ {time, to_unix_timestamp(now())} ],
+    MessageWithTime = Message ++ [ {time, epoch()} ],
     lists:foreach(fun (WebSocket) ->
         WebSocket ! {hotline_message, MessageWithTime}
     end, State#state.websockets),
