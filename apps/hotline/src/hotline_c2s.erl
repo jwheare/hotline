@@ -400,12 +400,13 @@ tcp(State, Packet) ->
 
 response(State, login, _Transaction) ->
     NewState = State#state{status=connected},
-    NewState2 = ws(NewState, [
+    NewState2 = set_client_user_info(NewState),
+    NewState3 = ws(NewState2, [
         {type, <<"logged_in">>}
     ]),
-    NewState3 = get_user_name_list(NewState2),
-    NewState4 = get_messages(NewState3),
-    NewState4;
+    NewState4 = get_user_name_list(NewState3),
+    NewState5 = get_messages(NewState4),
+    NewState5;
     
 response(State, get_user_name_list, Transaction) ->
     ChatSubject = proplists:get_value(chat_subject, Transaction#transaction.parameters),
