@@ -357,10 +357,15 @@ get_messages(State) ->
     request_with_handler(State, get_msgs).
 
 chat_send(State, Line) ->
-    request(State, chat_send, [
-        {data, Line},
-        {chat_options, 0}
-    ]).
+    case Line of
+        <<"/nick ", Nick/binary>> ->
+            change_nick(State, Nick);
+        _ ->
+            request(State, chat_send, [
+                {data, Line},
+                {chat_options, 0}
+            ])
+    end.
 
 % build_user_object
 
