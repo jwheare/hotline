@@ -35,7 +35,13 @@ wsloop_active0(WSReq) ->
             case Message of
                 [{<<"type">>, <<"chat_send">>},
                  {<<"msg">>, Msg}] ->
-                    hotline_c2s:chat_send(Msg)
+                    hotline_c2s:chat_send(Msg);
+                [{<<"type">>, <<"change_nick">>},
+                 {<<"nick">>, Nick}] ->
+                    hotline_c2s:change_nick(Nick);
+                [{<<"type">>, <<"change_icon">>},
+                 {<<"icon">>, Icon}] ->
+                    hotline_c2s:change_icon(Icon)
             end,
             wsloop_active0(WSReq);
         {hotline_message, Data} ->

@@ -11,6 +11,8 @@
     transactions_parse/1,
     
     chat_send/1,
+    change_nick/1,
+    change_icon/1,
     
     get_state/0
 ]).
@@ -46,6 +48,12 @@ stop() ->
 
 chat_send(Line) ->
     gen_server:call(?MODULE, {chat_send, Line}).
+
+change_nick(Nick) ->
+    gen_server:call(?MODULE, {change_nick, Nick}).
+
+change_icon(Icon) ->
+    gen_server:call(?MODULE, {change_icon, Icon}).
 
 get_state() ->
     gen_server:call(?MODULE, get_state).
@@ -122,6 +130,14 @@ handle_call(stop, _From, State) ->
 
 handle_call({chat_send, Line}, _From, State) ->
     NewState = chat_send(State, Line),
+    {reply, ok, NewState};
+
+handle_call({change_nick, Nick}, _From, State) ->
+    NewState = change_nick(State, Nick),
+    {reply, ok, NewState};
+
+handle_call({change_icon, Icon}, _From, State) ->
+    NewState = change_icon(State, Icon),
     {reply, ok, NewState};
 
 handle_call(get_state, _From, State) ->
@@ -319,6 +335,20 @@ login(State) ->
         {icon, Connection#connection.icon}
     ]),
     NewState2#state{status=login}.
+
+change_nick(State, Nick) ->
+    Connection = State#state.connection#connection{name=Nick},
+    set_client_user_info(State#state{connection=Connection}).
+
+change_icon(State, Icon) ->
+    Connection = State#state.connection#connection{icon=Icon},
+    set_client_user_info(State#state{connection=Connection}).
+
+set_client_user_info(State) ->
+    request(State, set_client_user_info, [
+        {user_name, State#state.connection#connection.name},
+        {user_icon_id, State#state.connection#connection.icon}
+    ]).
 
 get_user_name_list(State) ->
     request_with_handler(State, get_user_name_list).
