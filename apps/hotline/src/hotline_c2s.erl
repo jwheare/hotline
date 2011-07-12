@@ -360,6 +360,8 @@ chat_send(State, Line) ->
     case Line of
         <<"/nick ", Nick/binary>> ->
             change_nick(State, Nick);
+        <<>> ->
+            State;
         _ ->
             request(State, chat_send, [
                 {data, Line},
