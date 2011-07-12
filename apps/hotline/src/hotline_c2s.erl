@@ -95,14 +95,21 @@ terminate(Reason, State) ->
 code_change(_PreviousVersion, State, _Extra) ->
     {ok, State}.
 
+
+% get_timestamp
+
+to_unix_timestamp({MegaSecs, Secs, _MicroSecs}) ->
+    (MegaSecs*1000000) + Secs.
+
 % ws
 
 ws(State, Message) ->
+    MessageWithTime = Message ++ [ {time, to_unix_timestamp(now())} ],
     lists:foreach(fun (WebSocket) ->
-        WebSocket ! {hotline_message, Message}
+        WebSocket ! {hotline_message, MessageWithTime}
     end, State#state.websockets),
     % Append to backlog
-    Backlog = lists:append(State#state.backlog, [Message]),
+    Backlog = lists:append(State#state.backlog, [MessageWithTime]),
     State#state{backlog=Backlog}.
 
 % handle_call
