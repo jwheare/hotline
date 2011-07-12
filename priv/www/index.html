@@ -202,11 +202,15 @@
                     break;
                 }
             }
-            function chat (text) {
-                ws.send(JSON.stringify({
+            function send (message) {
+                ws.send(JSON.stringify(message));
+            }
+            function chat (text, emote) {
+                send({
                     "type": "chat_send",
-                    "msg": text
-                }));
+                    "msg": text,
+                    "emote": emote
+                });
             }
             
             $('#inputBox')
@@ -214,7 +218,9 @@
                     switch (e.keyCode) {
                     case 13: // RETURN
                         e.preventDefault();
-                        chat($(this).val());
+                        // Send
+                        chat($(this).val(), (e.metaKey || e.ctrlKey));
+                        // Clear
                         $(this).val('');
                         break;
                     }
