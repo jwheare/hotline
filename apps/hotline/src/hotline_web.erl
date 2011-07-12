@@ -23,6 +23,13 @@ start(Options) ->
 stop() ->
     mochiweb_http:stop(?MODULE).
 
+to_bool([])     -> false;
+to_bool(<<>>)   -> false;
+to_bool(0)      -> false;
+to_bool(null)   -> false;
+to_bool(false)  -> false;
+to_bool(_Value) -> true.
+
 wsloop_active(WSReq) ->
     hotline_c2s:register_websocket(self()),
     wsloop_active0(WSReq).
@@ -34,8 +41,13 @@ wsloop_active0(WSReq) ->
             {struct, Message} = mochijson2:decode(Frame),
             case Message of
                 [{<<"type">>, <<"chat_send">>},
-                 {<<"msg">>, Msg}] ->
-                    hotline_c2s:chat_send(Msg);
+                 {<<"msg">>, Msg} | Rest] ->
+                    case Rest of
+                        [{<<"emote">>, Emote}] ->
+                            hotline_c2s:chat_send(Msg, to_bool(Emote));
+                        [] ->
+                            hotline_c2s:chat_send(Msg)
+                    end;
                 [{<<"type">>, <<"change_nick">>},
                  {<<"nick">>, Nick}] ->
                     hotline_c2s:change_nick(Nick);

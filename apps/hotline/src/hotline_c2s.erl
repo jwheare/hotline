@@ -11,6 +11,7 @@
     transactions_parse/1,
     
     chat_send/1,
+    chat_send/2,
     change_nick/1,
     change_icon/1,
     
@@ -47,7 +48,9 @@ stop() ->
     gen_server:call(?MODULE, stop).
 
 chat_send(Line) ->
-    gen_server:call(?MODULE, {chat_send, Line}).
+    chat_send(Line, false).
+chat_send(Line, Emote) ->
+    gen_server:call(?MODULE, {chat_send, Line, Emote}).
 
 change_nick(Nick) ->
     gen_server:call(?MODULE, {change_nick, Nick}).
@@ -128,8 +131,8 @@ ws(State, Message) ->
 handle_call(stop, _From, State) ->
     {stop, normal, stopped, State};
 
-handle_call({chat_send, Line}, _From, State) ->
-    NewState = chat_send(State, Line),
+handle_call({chat_send, Line, Emote}, _From, State) ->
+    NewState = chat_send(State, Line, Emote),
     {reply, ok, NewState};
 
 handle_call({change_nick, Nick}, _From, State) ->
@@ -356,16 +359,20 @@ get_user_name_list(State) ->
 get_messages(State) ->
     request_with_handler(State, get_msgs).
 
-chat_send(State, Line) ->
+chat_send(State, Line, Emote) ->
     case Line of
         <<"/nick ", Nick/binary>> ->
             change_nick(State, Nick);
         <<>> ->
             State;
         _ ->
+            Options = case Emote of
+                true -> 1;
+                _    -> 0
+            end,
             request(State, chat_send, [
                 {data, Line},
-                {chat_options, 0}
+                {chat_options, Options}
             ])
     end.
 
