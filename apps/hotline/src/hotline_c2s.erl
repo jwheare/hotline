@@ -322,17 +322,22 @@ chat_send(State, Line) ->
         {chat_options, 0}
     ]).
 
+% build_user_object
+
+user_to_proplist(User) ->
+    [
+        {id, User#user.id},
+        {nick, User#user.nick},
+        {icon, User#user.icon},
+        {status, User#user.status}
+    ].
+
 % send_user_list
 
 send_user_list(State) ->
     ws(State, [
         {type, <<"user_name_list">>},
-        {userlist, [[
-            {id, UserId},
-            {nick, User#user.nick},
-            {icon, User#user.icon},
-            {status, User#user.status}
-        ] || {UserId, User} <- State#state.user_list]}
+        {userlist, [user_to_proplist(User) || {_UserId, User} <- State#state.user_list]}
     ]).
 
 % tcp handlers
@@ -446,18 +451,50 @@ transaction(State, Transaction = #transaction{operation=notify_change_user}) ->
     case proplists:get_value(UserId, UserList) of
         undefined ->
             % Add user
-            NewList = lists:append(UserList, [NewUser]);
-        _StateUser ->
+            NewList = lists:append(UserList, [NewUser]),
+            NewState = ws(State, [
+                {type, <<"user_joined">>},
+                {user, user_to_proplist(User)}
+            ]);
+        StateUser ->
             % Modify user
-            NewList = lists:keyreplace(UserId, 1, UserList, NewUser)
+            NewList = lists:keyreplace(UserId, 1, UserList, NewUser),
+            NewState = if
+                StateUser#user.nick =/= User#user.nick ->
+                    ws(State, [
+                        {type, <<"user_nick_change">>},
+                        {user, user_to_proplist(User)},
+                        {old_nick, StateUser#user.nick}
+                    ]);
+                StateUser#user.status =/= User#user.status ->
+                    ws(State, [
+                        {type, <<"user_status_change">>},
+                        {user, user_to_proplist(User)},
+                        {old_status, StateUser#user.status}
+                    ]);
+                StateUser#user.icon =/= User#user.icon ->
+                    ws(State, [
+                        {type, <<"user_icon_change">>},
+                        {user, user_to_proplist(User)},
+                        {old_icon, StateUser#user.icon}
+                    ]);
+                true -> State
+            end
     end,
-    send_user_list(State#state{user_list=NewList});
+    send_user_list(NewState#state{user_list=NewList});
 
 transaction(State, Transaction = #transaction{operation=notify_delete_user}) ->
     % Remove from user_list
     <<UserId:16>> = proplists:get_value(user_id, Transaction#transaction.parameters),
+    User = proplists:get_value(UserId, State#state.user_list),
     NewList = proplists:delete(UserId, State#state.user_list),
-    send_user_list(State#state{user_list=NewList});
+    NewState = State#state{user_list=NewList},
+    NewState2 = ws(NewState, [
+        {type, <<"user_left">>},
+        {user, user_to_proplist(User)}
+    ]),
+    NewState3 = send_user_list(NewState2),
+    NewState3;
 
 transaction(State, Transaction) ->
     % Check for a transaction handler
