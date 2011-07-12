@@ -208,16 +208,18 @@
                     "msg": text
                 }));
             }
-            $('#inputBox').keypress(function (e) {
-                switch (e.keyCode) {
-                case 13: // RETURN
-                    e.preventDefault();
-                    chat($(this).val());
-                    $(this).val('');
-                    break;
-                }
-            });
-            $('#inputBox').focus();
+            
+            $('#inputBox')
+                .keydown(function (e) {
+                    switch (e.keyCode) {
+                    case 13: // RETURN
+                        e.preventDefault();
+                        chat($(this).val());
+                        $(this).val('');
+                        break;
+                    }
+                })
+                .focus();
         </script>
     </body>
 </html>
