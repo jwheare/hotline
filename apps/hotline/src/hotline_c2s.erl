@@ -367,13 +367,23 @@ get_user_name_list(State) ->
 get_messages(State) ->
     request_with_handler(State, get_msgs).
 
+send_instant_msg(State, UserId, Message) ->
+    request(State, send_instant_msg, [
+        {user_id, UserId},
+        {options, hotline_constants:opt_to_code(user_message)},
+        {data, Message}
+    ]).
+
 chat_send(State, Line, Emote) ->
     case Line of
         <<"/nick ", Nick/binary>> ->
+            % Change nick
             change_nick(State, Nick);
         <<>> ->
+            % Empty line, do nothing
             State;
         _ ->
+            % Send chat, optionally as an emote
             Options = case Emote of
                 true -> 1;
                 _    -> 0
