@@ -18,7 +18,14 @@ ws.onerror = function (event) {
     console.warn('WebSocket error', event);
 };
 function append_scroll (message, text) {
-    $('#scroll').append($('<div>').addClass(message.type).text(text));
+    var scroll = $('#scroll');
+    var scrollBottom = scroll.scrollTop() + scroll.height();
+    var scrolledFromBottom = scroll.prop('scrollHeight') - scrollBottom;
+    scroll.append($('<div>').addClass(message.type).text(text));
+    // Keep scrolled to bottom
+    if (scrolledFromBottom == 0) {
+        scroll.scrollTop(scroll.prop('scrollHeight'));
+    }
 }
 function handle_message (message) {
     switch (message.type) {
@@ -74,6 +81,7 @@ function handle_message (message) {
         break;
     }
 }
+
 function send (message) {
     ws.send(JSON.stringify(message));
 }
