@@ -48,18 +48,23 @@ start_link() ->
 stop() ->
     gen_server:call(?MODULE, stop).
 
-chat_send(Line) ->
+chat_send(Line) when is_binary(Line),
+                     Line =/= <<>> ->
     chat_send(Line, false).
-chat_send(Line, Emote) ->
+chat_send(Line, Emote) when is_binary(Line),
+                            Line =/= <<>>,
+                            is_boolean(Emote) ->
     gen_server:call(?MODULE, {chat_send, Line, Emote}).
 
-send_instant_msg(UserId, Message) ->
+send_instant_msg(UserId, Message) when is_integer(UserId),
+                                       is_binary(Message),
+                                       Message =/= <<>> ->
     gen_server:call(?MODULE, {send_instant_msg, UserId, Message}).
 
-change_nick(Nick) ->
+change_nick(Nick) when is_binary(Nick), Nick =/= <<>> ->
     gen_server:call(?MODULE, {change_nick, Nick}).
 
-change_icon(Icon) ->
+change_icon(Icon) when is_integer(Icon) ->
     gen_server:call(?MODULE, {change_icon, Icon}).
 
 get_state() ->
