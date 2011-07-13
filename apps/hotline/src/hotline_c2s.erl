@@ -12,6 +12,7 @@
     
     chat_send/1,
     chat_send/2,
+    send_instant_msg/2,
     change_nick/1,
     change_icon/1,
     
@@ -51,6 +52,9 @@ chat_send(Line) ->
     chat_send(Line, false).
 chat_send(Line, Emote) ->
     gen_server:call(?MODULE, {chat_send, Line, Emote}).
+
+send_instant_msg(UserId, Message) ->
+    gen_server:call(?MODULE, {send_instant_msg, UserId, Message}).
 
 change_nick(Nick) ->
     gen_server:call(?MODULE, {change_nick, Nick}).
@@ -133,6 +137,10 @@ handle_call(stop, _From, State) ->
 
 handle_call({chat_send, Line, Emote}, _From, State) ->
     NewState = chat_send(State, Line, Emote),
+    {reply, ok, NewState};
+
+handle_call({send_instant_msg, UserId, Message}, _From, State) ->
+    NewState = send_instant_msg(State, UserId, Message),
     {reply, ok, NewState};
 
 handle_call({change_nick, Nick}, _From, State) ->
