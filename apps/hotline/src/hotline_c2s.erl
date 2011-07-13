@@ -53,12 +53,9 @@ start_link() ->
 stop() ->
     gen_server:call(?MODULE, stop).
 
-chat_send(Line) when is_binary(Line),
-                     Line =/= <<>> ->
+chat_send(Line) when is_binary(Line) ->
     chat_send(Line, false).
-chat_send(Line, Emote) when is_binary(Line),
-                            Line =/= <<>>,
-                            is_boolean(Emote) ->
+chat_send(Line, Emote) when is_binary(Line), is_boolean(Emote) ->
     gen_server:call(?MODULE, {chat_send, Line, Emote}).
 
 send_instant_msg(UserId, Message) when is_integer(UserId),
