@@ -126,7 +126,7 @@
         </div>
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.6.2/jquery.min.js"></script>
         <script>
-            var ws = new WebSocket("ws://localhost:55500");
+            var ws = new WebSocket("ws://" + window.location.host);
             ws.onopen = function (event) {
                 console.info('WebSocket open', event);
             };
