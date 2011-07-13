@@ -1,0 +1,115 @@
+body {
+    margin: 0;
+    padding: 20px;
+    font: normal 13px "Consolas", monospace;
+}
+
+/* scrollbars */
+
+::-webkit-scrollbar {
+    width: 14px;
+    height: 10px;
+}
+::-webkit-scrollbar-track-piece {
+    background-color: #eee;
+    background-clip: padding-box;
+    -webkit-background-clip: padding-box;
+    border: 3px solid #fff;
+    border-radius: 6px;
+    -webkit-border-radius: 6px;
+}
+::-webkit-scrollbar-thumb {
+    background-color: #527dff;
+    background-clip: padding-box;
+    -webkit-background-clip: padding-box;
+    border: 3px solid #fff;
+    border-radius: 6px;
+    -webkit-border-radius: 6px;
+}
+::-webkit-scrollbar-thumb:window-inactive {
+    background-color: #bbb;
+}
+
+#scroll {
+    height: 349px;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    overflow: auto;
+}
+
+#container {
+    margin: 0 auto;
+    width: 800px;
+    height: 380px;
+}
+
+/* Members */
+
+#members {
+    width: 232px;
+    height: 380px;
+    float: right;
+}
+    #members ul,
+    #members li {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+    }
+    #members li {
+        overflow: hidden;
+        height: 14px;
+        padding: 2px 2px 2px 35px;
+        font: normal 11px/14px "Lucida Grande", "Verdana", sans-serif;
+        background-repeat: no-repeat;
+    }
+    #members .status_0 {
+        color: #000;
+    }
+    #members .status_1 {
+        color: #999;
+    }
+    #members .status_2 {
+        color: #D54533;
+    }
+    #members .status_3 {
+        color: #FC8C7C;
+    }
+
+/* Input */
+
+#input {
+    margin-top: 5px;
+    width: 568px;
+    height: 24px;
+}
+    #input textarea {
+        width: 558px;
+        height: 16px;
+        padding: 4px;
+        border: 1px solid #999;
+        border-radius: 3px;
+        font: normal 13px/16px "Consolas", monospace;
+        resize: none;
+    }
+
+/* News */
+
+#news {
+    margin-top: 10px;
+    padding: 10px;
+    height: 300px;
+    overflow: auto;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    border-radius: 5px;
+    background-color: #ddd;
+}
+
+    #news::-webkit-scrollbar-track-piece {
+        border-color: #ddd;
+        background-color: #bbb;
+    }
+    #news::-webkit-scrollbar-thumb {
+        border-color: #ddd;
+    }
