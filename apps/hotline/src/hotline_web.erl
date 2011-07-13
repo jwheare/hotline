@@ -2,7 +2,7 @@
 
 -export([start/0, start/1, stop/0, loop/2, wsloop_active/1]).
 
-start() -> start([{port, 55500}, {docroot, "priv/www"}]).
+start() -> start([{port, 55500}, {docroot, code:priv_dir(hotline) ++ "/www"}]).
 
 start(Options) ->
     {DocRoot, Options1} = get_option(docroot, Options),

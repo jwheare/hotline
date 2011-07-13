@@ -26,6 +26,11 @@
 -define(SERVER_VERSION, 185).
 -define(LOG(String, Params), io:format(String ++ "~n", Params)).
 -define(LOG(String), ?LOG(String, [])).
+-define(CONFVAL(K, Default), case application:get_env(hotline, K) of
+    undefined -> Default;
+    {ok, Value}     -> Value 
+end).
+-define(CONFVAL(K), ?CONFVAL(K, undefined)).
 
 -record(state, {
     socket,                    % tcp socket
@@ -77,10 +82,12 @@ register_websocket(Pid) ->
 
 init([]) ->
     Connection = #connection{
-        hostname = <<"livebus.org">>,
-        title    = <<"Livebus">>,
-        name     = <<"Erlanger">>,
-        icon     = 150
+        hostname = ?CONFVAL(connection_hostname, ?CONFVAL(connection_default_hostname)),
+        title    = ?CONFVAL(connection_title, ?CONFVAL(connection_default_title)),
+        name     = ?CONFVAL(connection_name, ?CONFVAL(connection_default_name)),
+        username = ?CONFVAL(connection_username, ?CONFVAL(connection_default_username)),
+        password = ?CONFVAL(connection_password, ?CONFVAL(connection_default_password)),
+        icon     = ?CONFVAL(connection_icon, ?CONFVAL(connection_default_icon))
     },
     case connect(Connection) of
         {ok, Socket} ->
