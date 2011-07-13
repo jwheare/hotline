@@ -2,7 +2,10 @@
 
 -export([
     field_to_atom/1, field_to_code/1,
-    transaction_to_atom/1, transaction_to_code/1
+    transaction_to_atom/1, transaction_to_code/1,
+    opt_to_code/1,
+    access_to_atom/1, access_to_code/1,
+    folder_action_to_atom/1, folder_action_to_code/1
 ]).
 
 field_to_atom(0)   -> unknown;
@@ -242,3 +245,94 @@ transaction_to_code(new_news_cat) -> 382;
 transaction_to_code(get_news_art_data) -> 400;
 transaction_to_code(post_news_art) -> 410;
 transaction_to_code(del_news_art) -> 411.
+
+opt_to_code(user_message) -> 1;
+opt_to_code(refuse_message) -> 2;
+opt_to_code(refuse_chat) -> 3;
+opt_to_code(automatic_response) -> 4.
+
+access_to_atom(0) -> delete_file;
+access_to_atom(1) -> upload_file;
+access_to_atom(2) -> download_file;
+access_to_atom(3) -> rename_file;
+access_to_atom(4) -> move_file;
+access_to_atom(5) -> create_folder;
+access_to_atom(6) -> delete_folder;
+access_to_atom(7) -> rename_folder;
+access_to_atom(8) -> move_folder;
+access_to_atom(9) -> read_chat;
+access_to_atom(10) -> send_chat;
+access_to_atom(11) -> open_chat;
+access_to_atom(12) -> close_chat;
+access_to_atom(13) -> show_in_list;
+access_to_atom(14) -> create_user;
+access_to_atom(15) -> delete_user;
+access_to_atom(16) -> open_user;
+access_to_atom(17) -> modify_user;
+access_to_atom(18) -> change_own_pass;
+access_to_atom(19) -> send_priv_msg;
+access_to_atom(20) -> news_read_art_type;
+access_to_atom(21) -> news_post_art_type;
+access_to_atom(22) -> discon_user_type;
+access_to_atom(23) -> cannot_be_discon;
+access_to_atom(24) -> get_client_info_type;
+access_to_atom(25) -> upload_anywhere;
+access_to_atom(26) -> any_name_type;
+access_to_atom(27) -> no_agreement;
+access_to_atom(28) -> set_file_comment_type;
+access_to_atom(29) -> set_folder_comment_type;
+access_to_atom(30) -> view_drop_boxes;
+access_to_atom(31) -> make_alias_type;
+access_to_atom(32) -> broadcast_type;
+access_to_atom(33) -> news_delete_art_type;
+access_to_atom(34) -> news_create_cat_type;
+access_to_atom(35) -> news_delete_cat_type;
+access_to_atom(36) -> news_create_fldr_type;
+access_to_atom(37) -> news_delete_fldr_type.
+
+access_to_code(delete_file) -> (0);
+access_to_code(upload_file) -> (1);
+access_to_code(download_file) -> (2);
+access_to_code(rename_file) -> (3);
+access_to_code(move_file) -> (4);
+access_to_code(create_folder) -> (5);
+access_to_code(delete_folder) -> (6);
+access_to_code(rename_folder) -> (7);
+access_to_code(move_folder) -> (8);
+access_to_code(read_chat) -> (9);
+access_to_code(send_chat) -> (10);
+access_to_code(open_chat) -> (11);
+access_to_code(close_chat) -> (12);
+access_to_code(show_in_list) -> (13);
+access_to_code(create_user) -> (14);
+access_to_code(delete_user) -> (15);
+access_to_code(open_user) -> (16);
+access_to_code(modify_user) -> (17);
+access_to_code(change_own_pass) -> (18);
+access_to_code(send_priv_msg) -> (19);
+access_to_code(news_read_art_type) -> (20);
+access_to_code(news_post_art_type) -> (21);
+access_to_code(discon_user_type) -> (22);
+access_to_code(cannot_be_discon) -> (23);
+access_to_code(get_client_info_type) -> (24);
+access_to_code(upload_anywhere) -> (25);
+access_to_code(any_name_type) -> (26);
+access_to_code(no_agreement) -> (27);
+access_to_code(set_file_comment_type) -> (28);
+access_to_code(set_folder_comment_type) -> (29);
+access_to_code(view_drop_boxes) -> (30);
+access_to_code(make_alias_type) -> (31);
+access_to_code(broadcast_type) -> (32);
+access_to_code(news_delete_art_type) -> (33);
+access_to_code(news_create_cat_type) -> (34);
+access_to_code(news_delete_cat_type) -> (35);
+access_to_code(news_create_fldr_type) -> (36);
+access_to_code(news_delete_fldr_type) -> (37).
+
+folder_action_to_atom(1) -> send_file;
+folder_action_to_atom(2) -> resume_file;
+folder_action_to_atom(3) -> next_file.
+
+folder_action_to_code(send_file) -> 1;
+folder_action_to_code(resume_file) -> 2;
+folder_action_to_code(next_file) -> 3.
