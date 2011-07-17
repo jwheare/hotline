@@ -1,3 +1,4 @@
+var HOTLINE = {};
 (function () {
 
 // Init socket
@@ -36,59 +37,120 @@ function writeScroll (message, text) {
     }
 }
 
+var User = Backbone.Model.extend({});
+var UserView = Backbone.View.extend({
+    tagName: 'li',
+    render: function () {
+        return this.renderNick().renderIcon();
+    },
+    
+    nick: function () {
+        return this.model.get('nick');
+    },
+    renderNick: function () {
+        $(this.el).text(this.nick());
+        return this;
+    },
+    renderIcon: function () {
+        $(this.el).css('background-image', 'url(/icons/' + this.model.get('icon') + '.gif)');
+        return this;
+    },
+    joinedMessage: function () {
+        return '→ ' + this.nick() + ' joined';
+    },
+    leftMessage: function () {
+        return '← ' + this.nick() + ' left';
+    },
+    nickChangeMessage: function (oldNick) {
+        return oldNick + ' → ' + this.nick();
+    }
+});
+
+
+var UserList = Backbone.Collection.extend({
+    model: User,
+    url: '/users/'
+});
+var UserListView = Backbone.View.extend({
+    el: 'ul#members',
+    
+    initialize: function () {
+        this.collection.bind("reset", $.proxy(this, "render"));
+    },
+    addUser: function (user) {
+        var userView = new UserView({
+            model: user,
+            className: 'status_' + user.get('status')
+        });
+        $(this.el).append(userView.render().el);
+    },
+    render: function () {
+        $(this.el).empty();
+        this.collection.each($.proxy(this, "addUser"));
+        return this;
+    }
+});
+
+HOTLINE.memberList = new UserList();
+new UserListView({
+    collection: HOTLINE.memberList
+});
+
+var messageHandlers = {
+    idle: function () {
+    },
+    handshake: function (message) {
+        $('title').text(message.hostname + ' | Hotline');
+        $('#title').text(message.title);
+        $('#hostname').text(message.hostname);
+        $('#status').text('Handshaking…');
+    },
+    login: function (message) {
+        $('#status').text('Handshaking…');
+    },
+    logged_in: function (message) {
+        $('#status').text('');
+    },
+    chat_msg: function (message) {
+        writeScroll(message, message.msg);
+    },
+    server_msg: function (message) {
+        writeScroll(message, '[' + message.from + '] ' + message.msg);
+        var fromId = 'message_' + message.from_id;
+        if ($('#'+fromId)[0]) {
+            $('#'+fromId).find('.count').text();
+        }
+    },
+    get_msgs: function (message) {
+        $('#news').text(message.messages.replace(/\r\n/g, '\n').replace(/\r/g, '\n'));
+    },
+    socket_closed: function (message) {
+        $('#status').text("Disconnected");
+        writeScroll(message, "Disconnected");
+    },
+    user_joined: function (message) {
+        var userView = new UserView({model: new User(message.user)});
+        writeScroll(message, userView.joinedMessage());
+    },
+    user_left: function (message) {
+        var userView = new UserView({model: new User(message.user)});
+        writeScroll(message, userView.leftMessage());
+    },
+    user_nick_change: function (message) {
+        var userView = new UserView({model: new User(message.user)});
+        writeScroll(message, userView.nickChangeMessage(message.old_nick));
+    },
+    user_name_list: function (message) {
+        HOTLINE.memberList.reset(message.userlist);
+    }
+};
+
 // Message handlers
 function handle_message (message) {
-    switch (message.type) {
-    case "idle":
-        // Just to keep the socket alive
-        break;
-    case "handshake":
-        $('title').text(message.hostname + ' | Hotline');
-        writeScroll(message, "Handshaking…");
-        break;
-    case "login":
-        writeScroll(message, "Logging in…");
-        break;
-    case "logged_in":
-        writeScroll(message, "Logged in.");
-        break;
-    case "chat_msg":
-        writeScroll(message, message.msg);
-        break;
-    case "server_msg":
-        writeScroll(message, '[' + message.from + '] ' + message.msg);
-        break;
-    case "get_msgs":
-        $('#news').text(message.messages.replace(/\r\n/g, '\n').replace(/\r/g, '\n'));
-        break;
-    case "socket_closed":
-        writeScroll(message, "Disconnected");
-        break;
-    case "user_joined":
-        writeScroll(message,  '→ ' + message.user.nick + ' joined');
-        break;
-    case "user_left":
-        writeScroll(message,  '← ' + message.user.nick + ' left');
-        break;
-    case "user_nick_change":
-        writeScroll(message, message.old_nick + ' → ' + message.user.nick);
-        break;
-    case "user_name_list":
-        var memberList = $('<ul>');
-        $.each(message.userlist, function (i, user) {
-            var member = $('<li>')
-                .text(user.nick)
-                .attr('id', 'user_' + user.id)
-                .addClass('status_' + user.status)
-                .data('icon', user.icon)
-                .css('background-image', 'url(/icons/'+user.icon+'.gif)');
-            memberList.append(member);
-        });
-        $('#members').html(memberList);
-        break;
-    default:
+    if (message.type in messageHandlers) {
+        messageHandlers[message.type](message);
+    } else {
         console.log(event.data);
-        break;
     }
 }
 
@@ -102,6 +164,20 @@ function chat (text, emote) {
         "msg": text,
         "emote": emote
     });
+}
+
+function showNews () {
+    $('#chatLink').removeClass('active');
+    $('#newsLink').addClass('active');
+    $('#news').show();
+    $('#chat').hide();
+}
+
+function showChat () {
+    $('#chatLink').addClass('active');
+    $('#newsLink').removeClass('active');
+    $('#news').hide();
+    $('#chat').show();
 }
 
 // Input key handler
@@ -118,6 +194,18 @@ $('#inputBox')
         }
     })
     .focus();
+
+$('#newsLink')
+    .click(function (e) {
+        e.preventDefault();
+        showNews();
+    });
+
+$('#chatLink')
+    .click(function (e) {
+        e.preventDefault();
+        showChat();
+    });
 
 // GO!
 SOCKET = initSocket();

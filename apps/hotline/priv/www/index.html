@@ -8,14 +8,36 @@
     </head>
     <body>
         <div id="container">
-            <div id="members"></div>
-            <div id="scroll"></div>
-            <div id="input">
-                <textarea id="inputBox"></textarea>
+            <div id="head">
+                <span id="hostname"></span>
+                <h1 id="title"></h1>
+                
+                <a id="chatLink" href="#chat" class="active">Chat</a>
+                <a id="newsLink" href="#news">News</a>
+                
+                <span id="status"></span>
             </div>
+            
+            <div id="sidebar">
+                <div id="messages"></div>
+                
+                <h2>Who’s here</h2>
+                <ul id="members"></ul>
+            </div>
+            
+            <div id="chat">
+                <div id="scroll"></div>
+                
+                <div id="input">
+                    <textarea id="inputBox"></textarea>
+                </div>
+            </div>
+            
             <div id="news"></div>
         </div>
-        <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.6.2/jquery.min.js"></script>
+        <script src="/jquery-1.6.2.min.js"></script>
+        <script src="/underscore.js"></script>
+        <script src="/backbone.js"></script>
         <script src="/main.js"></script>
     </body>
 </html>
