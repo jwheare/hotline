@@ -23,28 +23,6 @@ start(Options) ->
 stop() ->
     mochiweb_http:stop(?MODULE).
 
-to_bool([])     -> false;
-to_bool(<<>>)   -> false;
-to_bool(0)      -> false;
-to_bool(null)   -> false;
-to_bool(false)  -> false;
-to_bool(_Value) -> true.
-
-handle_message(<<"chat_send">>, Message) ->
-    Msg = proplists:get_value(<<"msg">>, Message),
-    case proplists:get_value(<<"emote">>, Message) of
-        undefined -> hotline_c2s:chat_send(Msg);
-        Emote -> hotline_c2s:chat_send(Msg, to_bool(Emote))
-    end;
-
-handle_message(<<"change_nick">>, Message) ->
-    Nick = proplists:get_value(<<"nick">>, Message),
-    hotline_c2s:change_nick(Nick);
-
-handle_message(<<"change_icon">>, Message) ->
-    Icon = proplists:get_value(<<"icon">>, Message),
-    hotline_c2s:change_icon(Icon).
-
 wsloop_active(WSReq) ->
     hotline_c2s:register_websocket(self()),
     wsloop_active0(WSReq).
@@ -54,7 +32,7 @@ wsloop_active0(WSReq) ->
         %% Received msg from the websocket:
         {websockets_frame, Frame} ->
             {struct, Message} = mochijson2:decode(Frame),
-            handle_message(proplists:get_value(<<"type">>, Message), Message),
+            hotline_web_handler:message(proplists:get_value(<<"type">>, Message), Message),
             wsloop_active0(WSReq);
         {hotline_message, Data} ->
             WSReq:send(mochijson2:encode({struct, Data})),
