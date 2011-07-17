@@ -169,7 +169,7 @@ handle_call(_Request, _From, State) ->
 % handle_cast
 
 handle_cast({register_websocket, Pid}, State) ->
-    % Monitory for unregistering
+    % Monitor websocket so we can unregister it when it goes down
     monitor(process, Pid),
     % Send backlog
     lists:foreach(fun (Message) ->
