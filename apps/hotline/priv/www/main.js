@@ -26,15 +26,28 @@ function initSocket() {
 }
 
 // Write to scroll
-function writeScroll (message, text) {
+function writeScroll (message, text, row) {
     var scroll = $('#scroll');
     var scrollBottom = scroll.scrollTop() + scroll.height();
     var scrolledFromBottom = scroll.prop('scrollHeight') - scrollBottom;
-    scroll.append($('<div>').addClass(message.type).text(text));
+    
+    if (!row) {
+        row = $('<div>');
+        scroll.append(row);
+    }
+    row
+        .addClass(message.type)
+        .text(text)
+        .data('message', message);
+    
     // Keep scrolled to bottom
     if (scrolledFromBottom == 0) {
         scroll.scrollTop(scroll.prop('scrollHeight'));
     }
+}
+
+function getLastScroll () {
+    return $('#scroll div:last-child');
 }
 
 var User = Backbone.Model.extend({});
@@ -63,6 +76,9 @@ var UserView = Backbone.View.extend({
     },
     nickChangeMessage: function (oldNick) {
         return oldNick + ' → ' + this.nick();
+    },
+    joinedNickChangeMessage: function (oldNick) {
+        return '→ ' + this.nickChangeMessage(oldNick) + ' joined';
     }
 });
 
@@ -137,7 +153,17 @@ var messageHandlers = {
         writeScroll(message, userView.leftMessage());
     },
     user_nick_change: function (message) {
-        var userView = new UserView({model: new User(message.user)});
+        var user = new User(message.user);
+        var userView = new UserView({model: user});
+        var lastScroll = getLastScroll();
+        var lastMessage = lastScroll.data('message');
+        if (lastMessage && lastMessage.type == 'user_joined') {
+            var lastUser = new User(lastMessage.user);
+            if (user.id == lastUser.id) {
+                writeScroll(message, userView.joinedNickChangeMessage(message.old_nick), lastScroll);
+                return;
+            }
+        }
         writeScroll(message, userView.nickChangeMessage(message.old_nick));
     },
     user_name_list: function (message) {
