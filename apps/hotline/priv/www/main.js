@@ -41,7 +41,7 @@ function writeScroll (message, text, row) {
         .addClass('timestamp')
         .text(date.toString('HH:mm'));
     row
-        .addClass(message.type)
+        .addClass('type_' + message.type)
         .text(text)
         .data('message', message)
         .prepend('<span class="g">] </span>')

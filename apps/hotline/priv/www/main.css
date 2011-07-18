@@ -142,6 +142,15 @@ h6 { font-size: 0.8em; }
     overflow: auto;
 }
 
+#scroll {
+    color: #aaa;
+}
+#scroll .type_chat_msg {
+    color: #222;
+}
+#scroll .type_server_msg {
+    color: #3550BC;
+}
 #scroll .timestamp {
     float: right;
     font-size: 12px;
