@@ -35,10 +35,18 @@ function writeScroll (message, text, row) {
         row = $('<div>');
         scroll.append(row);
     }
+    var date = new Date(message.time * 1000);
+    var timestamp = $('<span>')
+        .attr('title', date.toString('dddd, MMMM dd, yyyy HH:mm:ss'))
+        .addClass('timestamp')
+        .text(date.toString('HH:mm'));
     row
         .addClass(message.type)
         .text(text)
-        .data('message', message);
+        .data('message', message)
+        .prepend('<span class="g">] </span>')
+        .prepend(timestamp)
+        .prepend(' <span class="g">[</span>');
     
     // Keep scrolled to bottom
     if (scrolledFromBottom == 0) {
