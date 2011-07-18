@@ -145,6 +145,9 @@ h6 { font-size: 0.8em; }
 #scroll {
     color: #aaa;
 }
+#scroll .message {
+    margin: 1px 0;
+}
 #scroll .type_chat_msg {
     color: #222;
 }

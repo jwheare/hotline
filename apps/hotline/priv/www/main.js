@@ -37,7 +37,7 @@ function writeScroll (message, text, row) {
     var scrolledFromBottom = scroll.prop('scrollHeight') - scrollBottom;
     
     if (!row) {
-        row = $('<div>');
+        row = $('<div class="message">');
         scroll.append(row);
     }
     var date = new Date(message.time * 1000);
@@ -60,7 +60,7 @@ function writeScroll (message, text, row) {
 }
 
 function getLastScroll () {
-    return $('#scroll div:last-child');
+    return $('#scroll div.message:last-child');
 }
 
 var User = Backbone.Model.extend({});
