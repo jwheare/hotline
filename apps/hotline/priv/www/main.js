@@ -141,7 +141,7 @@ var messageHandlers = {
         $('#status').text('');
     },
     chat_msg: function (message) {
-        writeScroll(message, message.msg);
+        writeScroll(message, message.msg.replace(/^\r/, ''));
     },
     server_msg: function (message) {
         writeScroll(message, '[' + message.from + '] ' + message.msg);
