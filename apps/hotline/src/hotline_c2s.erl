@@ -539,7 +539,6 @@ response(State, Type, Transaction) ->
 
 transaction(State, Transaction = #transaction{operation=chat_msg}) ->
     Message = proplists:get_value(data, Transaction#transaction.parameters),
-    ?LOG("~s", [Message]),
     ws(State, [
         {type, <<"chat_msg">>},
         {msg, Message}
@@ -549,7 +548,6 @@ transaction(State, Transaction = #transaction{operation=server_msg}) ->
     <<FromId:16>> = proplists:get_value(user_id,   Transaction#transaction.parameters),
     From          = proplists:get_value(user_name, Transaction#transaction.parameters),
     Message       = proplists:get_value(data,      Transaction#transaction.parameters),
-    ?LOG("PM [~s] ~s", [From, Message]),
     ws(State, [
         {type, <<"server_msg">>},
         {from_id, FromId},
