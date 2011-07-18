@@ -209,15 +209,14 @@ function showNews () {
     $('#chatLink').removeClass('active');
     $('#newsLink').addClass('active');
     $('#news').show();
-    $('#chat').hide();
+    $('#chat').addClass('hidden');
 }
 
 function showChat () {
     $('#chatLink').addClass('active');
     $('#newsLink').removeClass('active');
     $('#news').hide();
-    $('#chat').show();
-    scrollToBottom();
+    $('#chat').removeClass('hidden');
 }
 
 // Input key handler

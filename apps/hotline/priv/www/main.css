@@ -132,17 +132,24 @@ h6 { font-size: 0.8em; }
         color: #FC8C7C;
     }
 
+/* Chat */
+
+#chat.hidden {
+    position: absolute;
+    visibility: hidden;
+}
+
 /* Scroll */
 
 #scroll,
 #news {
-    height: 349px;
     white-space: pre-wrap;
     word-wrap: break-word;
     overflow: auto;
 }
 
 #scroll {
+    height: 349px;
     color: #aaa;
 }
 #scroll .row {
