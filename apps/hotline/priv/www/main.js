@@ -25,6 +25,11 @@ function initSocket() {
     return ws;
 }
 
+function scrollToBottom () {
+    var scroll = $('#scroll');
+    scroll.scrollTop(scroll.prop('scrollHeight'));
+}
+
 // Write to scroll
 function writeScroll (message, text, row) {
     var scroll = $('#scroll');
@@ -50,7 +55,7 @@ function writeScroll (message, text, row) {
     
     // Keep scrolled to bottom
     if (scrolledFromBottom == 0) {
-        scroll.scrollTop(scroll.prop('scrollHeight'));
+        scrollToBottom();
     }
 }
 
@@ -212,6 +217,7 @@ function showChat () {
     $('#newsLink').removeClass('active');
     $('#news').hide();
     $('#chat').show();
+    scrollToBottom();
 }
 
 // Input key handler
