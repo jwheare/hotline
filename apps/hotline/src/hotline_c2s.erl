@@ -223,8 +223,9 @@ connect(Connection) ->
     gen_tcp:connect(binary_to_list(Connection#connection.hostname), ?REMOTE_PORT, [
         binary,
         {active, true},
-        {send_timeout, 2000},
-        {keepalive, true}
+        {keepalive, true},
+        {nodelay, true},
+        {reuseaddr, true}
     ]).
 
 % tcp_send
