@@ -219,6 +219,16 @@ function showChat () {
     $('#chat').removeClass('hidden');
 }
 
+$(window).keydown(function (e) {
+    if (!$(e.target).is('input, textarea')) {
+        if (!e.metaKey && !e.ctrlKey && (e.keyCode === 0 || e.keyCode >= 48)) {
+            // Focus chat box
+            $('#inputBox').focus();
+        }
+    }
+    return true;
+});
+
 // Input key handler
 $('#inputBox')
     .keydown(function (e) {
