@@ -25,9 +25,51 @@ var VIEW = {};
         });
     }
     
+    // Connection
+    VIEW.ConnectionView = Backbone.View.extend({
+        initialize: function () {
+            this.model.bind("change:state", $.proxy(this, "renderState"));
+            this.model.bind("change:hostname", $.proxy(this, "renderHostname"));
+            this.model.bind("change:title", $.proxy(this, "renderTitle"));
+        },
+        
+        render: function () {
+            this.renderState().renderTitle().renderHostname();
+        },
+        
+        renderTitle: function () {
+            $('#title').text(this.model.get('title'));
+            return this;
+        },
+        renderHostname: function () {
+            $('title').text(this.model.get('hostname') + ' | Hotline');
+            $('#hostname').text(this.model.get('hostname'));
+            return this;
+        },
+        renderState: function () {
+            var message;
+            switch (this.model.get('state')) {
+            case 'handshaking':
+                message = 'Handshaking…';
+                break;
+            case 'loggingIn':
+                message = 'Logging in…';
+                break;
+            case 'disconnected':
+                message = 'Disconnected';
+                break;
+            case 'loggedIn':
+            default:
+                message = '';
+            }
+            $('#status').text(message);
+            return this;
+        }
+    });
+    
     // News
     VIEW.NewsView = Backbone.View.extend({
-        el: 'div#news',
+        el: '#news',
         
         initialize: function () {
             this.model.bind("change", $.proxy(this, "render"));
@@ -200,7 +242,7 @@ var VIEW = {};
     };
     
     VIEW.LinesView = Backbone.View.extend({
-        el: 'div#lines',
+        el: '#lines',
         
         initialize: function () {
             this.collection.bind("add", $.proxy(this, "renderLine"));

@@ -1,5 +1,12 @@
 var MODEL = {};
 (function () {
+    MODEL.Connection = Backbone.Model.extend({
+        spec: [
+            'state',
+            'title',
+            'hostname'
+        ]
+    });
     MODEL.News = Backbone.Model.extend({
         spec: [
             'messages'
@@ -20,13 +27,19 @@ var MODEL = {};
             'msg'
         ]
     });
+    
+    var MessageSpec = [
+        'type',
+        'time'
+    ];
     MODEL.Line = Backbone.Model.extend({
-        spec: [
-            'type',
-            'time'
-        ]
+        spec: MessageSpec
     });
-    var LineSpec = {
+    var MessageSpecs = {
+        handshake: [
+            'hostname',
+            'title'
+        ],
         chat_msg: [
             'msg'
         ],

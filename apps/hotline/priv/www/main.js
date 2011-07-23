@@ -2,7 +2,7 @@ var APP = {};
 (function () {
 
 // Init socket
-function initSocket() {
+function startSocket() {
     var ws = new WebSocket("ws://" + window.location.host);
     ws.onopen = function (event) {
         console.info('WebSocket open', event);
@@ -41,6 +41,10 @@ APP.news = new MODEL.News();
 new VIEW.NewsView({
     model: APP.news
 });
+APP.connection = new MODEL.Connection();
+new VIEW.ConnectionView({
+    model: APP.connection
+});
 
 // Message handlers
 function handle_message (message) {
@@ -55,16 +59,17 @@ var MESSAGE = {
     idle: function () {
     },
     handshake: function (message) {
-        $('title').text(message.hostname + ' | Hotline');
-        $('#title').text(message.title);
-        $('#hostname').text(message.hostname);
-        $('#status').text('Handshaking…');
+        APP.connection.set({
+            state: 'handshaking',
+            title: message.title,
+            hostname: message.hostname
+        });
     },
     login: function (message) {
-        $('#status').text('Handshaking…');
+        APP.connection.set({state: 'loggingIn'});
     },
     logged_in: function (message) {
-        $('#status').text('');
+        APP.connection.set({state: 'loggedIn'});
     },
     chat_msg: function (message) {
         APP.lines.add(message);
@@ -77,7 +82,7 @@ var MESSAGE = {
         APP.news.set(message);
     },
     socket_closed: function (message) {
-        $('#status').text("Disconnected");
+        APP.connection.set({state: 'disconnected'});
         APP.lines.add(message);
     },
     user_joined: function (message) {
@@ -158,6 +163,6 @@ $('#chatLink')
     });
 
 // GO!
-SOCKET = initSocket();
+SOCKET = startSocket();
 
 })();
