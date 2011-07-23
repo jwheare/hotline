@@ -187,7 +187,8 @@ var messageHandlers = {
         }
     },
     get_msgs: function (message) {
-        $('#news').text(message.messages.replace(/\r\n/g, '\n').replace(/\r/g, '\n'));
+        var messages = message.messages.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+        $('#news').html(autolink(messages));
     },
     socket_closed: function (message) {
         $('#status').text("Disconnected");
