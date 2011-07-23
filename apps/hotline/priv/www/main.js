@@ -47,7 +47,7 @@ function writeScroll (message, text, row) {
         .text(date.toString('HH:mm'));
     row
         .addClass('type_' + message.type)
-        .text(text)
+        .html(text)
         .data('message', message)
         .prepend('<span class="g">] </span>')
         .prepend(timestamp)
@@ -125,6 +125,42 @@ new UserListView({
     collection: HOTLINE.memberList
 });
 
+function escapeText (text) {
+    return text
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&apos;');
+}
+function linkifyCallback (text, href) {
+    console.log('linkifyCallback', text, href);
+    var html = '';
+    if (href) {
+        html += _.template('<a href="<%= href %>">', {href : href});
+    }
+    html += escapeText(text);
+    if (href) {
+        html += '</a>';
+    }
+    return html;
+}
+function autolink (text) {
+    return linkify(text, {
+        callback: function (cbText, href) {
+            var html = '';
+            if (href) {
+                html += _.template('<a href="<%= href %>">', {href : href});
+            }
+            html += escapeText(cbText);
+            if (href) {
+                html += '</a>';
+            }
+            return html;
+        }
+    });
+}
+
 var messageHandlers = {
     idle: function () {
     },
@@ -141,10 +177,10 @@ var messageHandlers = {
         $('#status').text('');
     },
     chat_msg: function (message) {
-        writeScroll(message, message.msg.replace(/^\r/, ''));
+        writeScroll(message, autolink(message.msg.replace(/^\r/, '')));
     },
     server_msg: function (message) {
-        writeScroll(message, '[' + message.from + '] ' + message.msg);
+        writeScroll(message, '[' + message.from + '] ' + autolink(message.msg));
         var fromId = 'message_' + message.from_id;
         if ($('#'+fromId)[0]) {
             $('#'+fromId).find('.count').text();
