@@ -139,36 +139,36 @@ h6 { font-size: 0.8em; }
     visibility: hidden;
 }
 
-/* Scroll */
-
-#scroll,
+#lines,
 #news {
     white-space: pre-wrap;
     word-wrap: break-word;
     overflow: auto;
 }
 
-#scroll {
+/* Lines */
+
+#lines {
     height: 349px;
     color: #aaa;
 }
-#scroll .row {
+#lines .row {
     margin: 1px 0;
 }
-#scroll .type_chat_msg {
+#lines .type_chat_msg {
     color: #222;
 }
-#scroll .type_server_msg {
+#lines .type_server_msg {
     color: #3550BC;
 }
-#scroll .timestamp {
+#lines .timestamp {
     float: right;
     font-size: 12px;
     color: #bbb;
     margin-left: 5px;
 }
 
-#scroll .g {
+#lines .g {
     position: absolute;
     top: -1000px;
     left: -1000px;
