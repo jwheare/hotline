@@ -150,7 +150,7 @@ function autolink (text) {
         callback: function (cbText, href) {
             var html = '';
             if (href) {
-                html += _.template('<a href="<%= href %>">', {href : href});
+                html += _.template('<a href="<%= href %>" target="_blank">', {href : href});
             }
             html += escapeText(cbText);
             if (href) {
