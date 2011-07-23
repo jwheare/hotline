@@ -464,6 +464,7 @@ delete_user(State, User) ->
 send_user_list(State) ->
     ws(State, [
         {type, <<"user_name_list">>},
+        {chat_subject, State#state.chat_subject},
         {userlist, [user_to_proplist(User) || {_UserId, User} <- State#state.user_list]}
     ]).
 

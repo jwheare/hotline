@@ -168,6 +168,10 @@ var MODEL = {};
         user_nick_change: [
             'user',
             'old_nick'
+        ],
+        user_name_list: [
+            'chat_subject',
+            'userlist'
         ]
     };
 })();
