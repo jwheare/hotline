@@ -147,6 +147,22 @@ var MODEL = {};
             'hostname',
             'title'
         ],
+        socket_closed: [],
+        login: [
+            'login',
+            'username',
+            'icon'
+        ],
+        logged_in: [],
+        get_msgs: [
+            'messages'
+        ],
+        idle: [],
+        invite_to_chat: [
+            'chat_id',
+            'from_id',
+            'from'
+        ],
         chat_msg: [
             'msg'
         ],
