@@ -156,8 +156,15 @@ var VIEW = {};
     var UserView = Backbone.View.extend({
         tagName: 'li',
         
+        initialize: function () {
+            this.model.bind("change:nick", $.proxy(this, "renderNick"));
+            this.model.bind("change:icon", $.proxy(this, "renderIcon"));
+            this.model.bind("change:status", $.proxy(this, "renderStatus"));
+            this.model.bind("remove", $.proxy(this, "remove"));
+        },
+        
         render: function () {
-            return this.renderNick().renderIcon();
+            return this.renderStatus().renderNick().renderIcon();
         },
         
         nick: function () {
@@ -167,6 +174,13 @@ var VIEW = {};
             return '/icons/' + this.model.get('icon') + '.gif';
         },
         
+        renderStatus: function () {
+            if (this.model.hasChanged('status')) {
+                $(this.el).removeClass('status_' + this.model.previous('status'));
+            }
+            $(this.el).addClass('status_' + this.model.get('status'));
+            return this;
+        },
         renderNick: function () {
             $(this.el).text(this.nick());
             return this;
@@ -182,6 +196,7 @@ var VIEW = {};
         
         initialize: function () {
             this.collection.bind("reset", $.proxy(this, "render"));
+            this.collection.bind("add", $.proxy(this, "renderUser"));
         },
         
         render: function () {
@@ -192,8 +207,7 @@ var VIEW = {};
         
         renderUser: function (user) {
             var userView = new UserView({
-                model: user,
-                className: 'status_' + user.get('status')
+                model: user
             });
             $(this.el).append(userView.render().el);
         }

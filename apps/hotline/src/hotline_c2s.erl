@@ -423,11 +423,10 @@ add_user(State, User) ->
     NewState = State#state{user_list=NewList},
     
     % Send ws messages
-    NewState2 = ws(NewState, [
+    ws(NewState, [
         {type, <<"user_joined">>},
         {user, user_to_proplist(User)}
-    ]),
-    send_user_list(NewState2).
+    ]).
 
 modify_user(State, CurrentUser, User) ->
     % Update state
@@ -435,28 +434,21 @@ modify_user(State, CurrentUser, User) ->
     NewState = State#state{user_list=NewList},
     
     % Send ws messages
-    NewState2 = if
-        CurrentUser#user.nick =/= User#user.nick ->
-            ws(NewState, [
+    NewState2 = ws(NewState, [
+        {type, <<"modify_user">>},
+        {user, user_to_proplist(User)}
+    ]),
+    % Nick changes get a separate message
+    case CurrentUser#user.nick =/= User#user.nick of
+        true ->
+            ws(NewState2, [
                 {type, <<"user_nick_change">>},
                 {user, user_to_proplist(User)},
                 {old_nick, CurrentUser#user.nick}
             ]);
-        CurrentUser#user.status =/= User#user.status ->
-            ws(NewState, [
-                {type, <<"user_status_change">>},
-                {user, user_to_proplist(User)},
-                {old_status, CurrentUser#user.status}
-            ]);
-        CurrentUser#user.icon =/= User#user.icon ->
-            ws(NewState, [
-                {type, <<"user_icon_change">>},
-                {user, user_to_proplist(User)},
-                {old_icon, CurrentUser#user.icon}
-            ]);
-        true -> NewState
-    end,
-    send_user_list(NewState2).
+        false ->
+            NewState2
+    end.
 
 delete_user(State, User) ->
     % Update state
@@ -464,11 +456,10 @@ delete_user(State, User) ->
     NewState = State#state{user_list=NewList},
     
     % Send ws messages
-    NewState2 = ws(NewState, [
+    ws(NewState, [
         {type, <<"user_left">>},
         {user, user_to_proplist(User)}
-    ]),
-    send_user_list(NewState2).
+    ]).
 
 send_user_list(State) ->
     ws(State, [

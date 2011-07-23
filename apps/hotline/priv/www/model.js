@@ -69,12 +69,18 @@ var MODEL = {};
                 this.addLine(message);
             },
             user_joined: function (message) {
+                this.addMember(message.user);
                 this.addLine(message);
             },
             user_left: function (message) {
+                this.removeMember(message.user);
                 this.addLine(message);
             },
+            modify_user: function (message) {
+                this.updateMember(message.user);
+            },
             user_nick_change: function (message) {
+                // Just print the line, modify_user handles state
                 this.addLine(message);
             },
             user_name_list: function (message) {
@@ -87,6 +93,15 @@ var MODEL = {};
         },
         addMessage: function (message) {
             this.conversations.add(message);
+        },
+        addMember: function (member) {
+            this.members.add(member);
+        },
+        updateMember: function (member) {
+            this.members.get(member.id).set(member);
+        },
+        removeMember: function (member) {
+            this.members.remove(member);
         },
         resetMembers: function (members) {
             this.members.reset(members);
@@ -145,6 +160,10 @@ var MODEL = {};
         ],
         user_left: [
             'user'
+        ],
+        modify_user: [
+            'user',
+            'old_user'
         ],
         user_nick_change: [
             'user',
