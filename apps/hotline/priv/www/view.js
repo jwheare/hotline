@@ -27,14 +27,53 @@ var VIEW = {};
     
     // Connection
     VIEW.ConnectionView = Backbone.View.extend({
+        el: '#container',
+        
         initialize: function () {
+            this.chat          = new ChatView({model: this.model});
+            this.news          = new NewsView({model: this.model.news});
+            this.conversations = new ConversationsView({collection: this.model.conversations});
+            this.members       = new UserListView({collection: this.model.members});
+            
             this.model.bind("change:state", $.proxy(this, "renderState"));
             this.model.bind("change:hostname", $.proxy(this, "renderHostname"));
             this.model.bind("change:title", $.proxy(this, "renderTitle"));
+            
+            // Keep input focus
+            this.focusInput();
+            $(window).keydown($.proxy(function (e) {
+                if (!$(e.target).is('input, textarea')) {
+                    if (!e.metaKey && !e.ctrlKey && (e.keyCode === 0 || e.keyCode >= 48)) {
+                        // Focus chat box
+                        this.focusInput();
+                    }
+                }
+                return true;
+            }, this));
+        },
+        
+        events: {
+            'click #newsLink': 'showNews',
+            'click #chatLink': 'showChat'
         },
         
         render: function () {
             this.renderState().renderTitle().renderHostname();
+        },
+        
+        focusInput: function () {
+            this.chat.input.focus();
+        },
+        
+        showNews: function (e) {
+            e.preventDefault();
+            this.chat.hide();
+            this.news.show();
+        },
+        showChat: function (e) {
+            e.preventDefault();
+            this.news.hide();
+            this.chat.show();
         },
         
         renderTitle: function () {
@@ -67,9 +106,30 @@ var VIEW = {};
         }
     });
     
+    // Chat
+    var ChatView = Backbone.View.extend({
+        el: '#chat',
+        link: '#chatLink',
+        
+        initialize: function () {
+            this.input = new InputView({model: this.model.chat});
+            this.lines = new LinesView({collection: this.model.lines});
+        },
+        
+        show: function () {
+            $(this.link).addClass('active');
+            $(this.el).removeClass('hidden');
+        },
+        hide: function () {
+            $(this.link).removeClass('active');
+            $(this.el).addClass('hidden');
+        }
+    });
+    
     // News
-    VIEW.NewsView = Backbone.View.extend({
+    var NewsView = Backbone.View.extend({
         el: '#news',
+        link: '#newsLink',
         
         initialize: function () {
             this.model.bind("change", $.proxy(this, "render"));
@@ -79,6 +139,14 @@ var VIEW = {};
             $(this.el).html(autolink(this.messages()));
         },
         
+        show: function () {
+            $(this.link).addClass('active');
+            $(this.el).show();
+        },
+        hide: function () {
+            $(this.link).removeClass('active');
+            $(this.el).hide();
+        },
         messages: function () {
             return this.model.get('messages').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
         }
@@ -109,7 +177,7 @@ var VIEW = {};
         }
     });
     
-    VIEW.UserListView = Backbone.View.extend({
+    var UserListView = Backbone.View.extend({
         el: 'ul#members',
         
         initialize: function () {
@@ -143,7 +211,7 @@ var VIEW = {};
         }
     });
     
-    VIEW.ConversationsView = Backbone.View.extend({
+    var ConversationsView = Backbone.View.extend({
         initialize: function () {
             this.collection.bind("add", $.proxy(this, "renderMessage"));
         },
@@ -241,7 +309,7 @@ var VIEW = {};
         }
     };
     
-    VIEW.LinesView = Backbone.View.extend({
+    var LinesView = Backbone.View.extend({
         el: '#lines',
         
         initialize: function () {
@@ -291,6 +359,36 @@ var VIEW = {};
         },
         scrollToBottom: function () {
             this.scrollTo(this.scrollHeight());
+            return this;
+        }
+    });
+    
+    var InputView = Backbone.View.extend({
+        el: '#inputBox',
+        
+        events: {
+            'keydown': 'keypress'
+        },
+        
+        keypress: function (e) {
+            if (e.keyCode === 13) { // RETURN
+                e.preventDefault();
+                this.model.save({
+                    msg: this.message(),
+                    emote: e.metaKey || e.ctrlKey
+                });
+                this.clear();
+            }
+        },
+        message: function () {
+            return $(this.el).val();
+        },
+        clear: function () {
+            $(this.el).val('');
+            return this;
+        },
+        focus: function () {
+            $(this.el).focus();
             return this;
         }
     });
