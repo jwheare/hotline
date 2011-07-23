@@ -508,8 +508,8 @@ response(State, get_user_name_list, Transaction) ->
             UserId:16,
             Icon:16,
             Status:16,
-            NickSize:16,
-            Nick:NickSize/binary
+            _NickSize:16,
+            Nick/binary
         >>} <- Transaction#transaction.parameters,
         Type =:= user_name_with_info
     ],
