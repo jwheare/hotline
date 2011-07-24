@@ -113,7 +113,27 @@ var MODEL = {};
             'nick',
             'icon',
             'status'
-        ]
+        ],
+        isIdle: function (value) {
+            return User.statuses.IDLE & this.get('status');
+        },
+        wasIdle: function () {
+            return User.statuses.IDLE & this.previous('status');
+        },
+        isAdmin: function () {
+            return User.statuses.ADMIN & this.get('status');
+        },
+        wasAdmin: function () {
+            return User.statuses.ADMIN & this.previous('status');
+        }
+    }, {
+        statuses: {
+            IDLE           : 1,
+            ADMIN          : 2,
+            REFUSE_MESSAGE : 4,
+            REFUSE_CHAT    : 8,
+            UNKICKABLE     : 16
+        }
     });
     var Message = Backbone.Model.extend({
         spec: [

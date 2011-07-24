@@ -163,7 +163,12 @@ var VIEW = {};
             this.model.bind("remove", $.proxy(this, "remove"));
         },
         
+        events: {
+            'click a': "openMessage"
+        },
+        
         render: function () {
+            $(this.el).append($('<a>').attr('href', this.model.url()));
             return this.renderStatus().renderNick().renderIcon();
         },
         
@@ -174,15 +179,30 @@ var VIEW = {};
             return '/icons/' + this.model.get('icon') + '.gif';
         },
         
+        openMessage: function (e) {
+            e.preventDefault();
+            console.log(this.nick());
+        },
+        
         renderStatus: function () {
             if (this.model.hasChanged('status')) {
-                $(this.el).removeClass('status_' + this.model.previous('status'));
+                if (this.model.wasIdle()) {
+                    $(this.el).removeClass('status_idle');
+                }
+                if (this.model.wasAdmin()) {
+                    $(this.el).removeClass('status_admin');
+                }
             }
-            $(this.el).addClass('status_' + this.model.get('status'));
+            if (this.model.isIdle()) {
+                $(this.el).addClass('status_idle');
+            }
+            if (this.model.isAdmin()) {
+                $(this.el).addClass('status_admin');
+            }
             return this;
         },
         renderNick: function () {
-            $(this.el).text(this.nick());
+            this.$('a').text(this.nick());
             return this;
         },
         renderIcon: function () {

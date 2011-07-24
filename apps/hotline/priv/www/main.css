@@ -112,23 +112,32 @@ h6 { font-size: 0.8em; }
     }
     #members li {
         overflow: hidden;
-        height: 14px;
+        height: 18px;
         margin: 0;
-        padding: 2px 2px 2px 35px;
+        padding: 0;
         list-style: none;
         font: normal 11px/14px "Lucida Grande", "Verdana", sans-serif;
         background-repeat: no-repeat;
     }
-    #members .status_0 {
+    #members a {
+        display: block;
+        height: 14px;
+        padding: 2px 2px 2px 35px;
+        text-decoration: none;
         color: #000;
     }
-    #members .status_1 {
+    #members a:hover {
+        border: 1px solid #5B8FFF;
+        padding: 1px 1px 1px 34px;
+        background-color: rgba(91, 143, 255, 0.2);
+    }
+    #members .status_idle a {
         color: #999;
     }
-    #members .status_2 {
+    #members .status_admin a {
         color: #D54533;
     }
-    #members .status_3 {
+    #members .status_admin.status_idle a {
         color: #FC8C7C;
     }
 
