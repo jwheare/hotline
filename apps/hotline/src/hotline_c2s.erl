@@ -583,8 +583,13 @@ transaction(State, Transaction = #transaction{operation=notify_change_user}) ->
 transaction(State, Transaction = #transaction{operation=notify_delete_user}) ->
     % Remove from user_list
     <<UserId:16>> = proplists:get_value(user_id, Transaction#transaction.parameters),
-    User = proplists:get_value(UserId, State#state.user_list),
-    delete_user(State, User);
+    case proplists:get_value(UserId, State#state.user_list) of
+        undefined ->
+            % Might have come in before receiving the member list
+            State;
+        User ->
+            delete_user(State, User)
+    end;
 
 transaction(State, Transaction) ->
     % Check for a transaction handler
