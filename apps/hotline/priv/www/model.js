@@ -1,17 +1,5 @@
 var MODEL = {};
 (function () {
-    var UserCollection = Backbone.Collection.extend({
-        model: User,
-        url: '/users/'
-    });
-    var MessageCollection = Backbone.Collection.extend({
-        model: Message,
-        url: '/messages/'
-    });
-    var LineCollection = Backbone.Collection.extend({
-        model: Line
-    });
-    
     MODEL.Connection = Backbone.Model.extend({
         spec: [
             'state',
@@ -190,4 +178,16 @@ var MODEL = {};
             'userlist'
         ]
     };
+    
+    var UserCollection = Backbone.Collection.extend({
+        model: User,
+        url: '/users/'
+    });
+    var MessageCollection = Backbone.Collection.extend({
+        model: Message,
+        url: '/messages/'
+    });
+    var LineCollection = Backbone.Collection.extend({
+        model: Line
+    });
 })();
