@@ -343,22 +343,26 @@ handshake(State) ->
 % requests
 
 login(State) ->
-    Connection = State#state.connection,
-    Params = [
+    % Update status
+    NewState = State#state{status=login},
+    
+    % Send login details
+    Connection = NewState#state.connection,
+    NewState2 = request_with_handler(NewState, login, [
         {user_login, encode_binary_string(Connection#connection.username)},
         {user_password, encode_binary_string(Connection#connection.password)},
         {user_name, Connection#connection.name},
         {user_icon_id, Connection#connection.icon},
         {vers, ?SERVER_VERSION}
-    ],
-    NewState = request_with_handler(State, login, Params),
-    NewState2 = ws(NewState, [
+    ]),
+    
+    % Send ws messages
+    ws(NewState2, [
         {type, <<"login">>},
         {login, Connection#connection.username},
         {username, Connection#connection.name},
         {icon, Connection#connection.icon}
-    ]),
-    NewState2#state{status=login}.
+    ]).
 
 change_nick(State, Nick) ->
     Connection = State#state.connection#connection{name=Nick},
@@ -463,13 +467,6 @@ delete_user(State, User) ->
         {user, user_to_proplist(User)}
     ]).
 
-send_user_list(State) ->
-    ws(State, [
-        {type, <<"user_name_list">>},
-        {chat_subject, State#state.chat_subject},
-        {userlist, [user_to_proplist(User) || {_UserId, User} <- State#state.user_list]}
-    ]).
-
 % tcp handlers
 
 tcp(State = #state{status=connecting}, <<"TRTP",0,0,0,0>>) ->
@@ -557,7 +554,12 @@ response(State, get_user_name_list, Transaction) ->
         Type =:= user_name_with_info
     ],
     ?LOG("~p", [UserList]),
-    send_user_list(State#state{chat_subject=ChatSubject, user_list=UserList});
+    NewState = State#state{chat_subject=ChatSubject, user_list=UserList},
+    ws(NewState, [
+        {type, <<"user_name_list">>},
+        {chat_subject, NewState#state.chat_subject},
+        {userlist, [user_to_proplist(User) || {_UserId, User} <- NewState#state.user_list]}
+    ]);
 
 response(State, get_msgs, Transaction) ->
     Messages = proplists:get_value(data, Transaction#transaction.parameters),
@@ -566,8 +568,8 @@ response(State, get_msgs, Transaction) ->
         {messages, Messages}
     ]);
 
-response(State, Type, Transaction) ->
-    ?LOG("RSP [~p:~p] ~p", [Transaction#transaction.id, Type, Transaction]),
+response(State, _Type, _Transaction) ->
+    % No handler
     State.
 
 % transaction handlers
@@ -642,6 +644,12 @@ transaction(State, Transaction) ->
             ?LOG("RCV [~p:~p] ~p", [TxnId, Transaction#transaction.operation, Transaction]),
             State;
         Type ->
+            case Transaction#transaction.operation of
+                unknown ->
+                    ?LOG("RSP [~p:~p] ~p", [Transaction#transaction.id, Type, Transaction]);
+                Operation ->
+                    ?LOG("RSP-OP [~p(~p):~p] ~p", [Transaction#transaction.id, Type, Operation, Transaction])
+            end,
             % Remove response handler and call
             ResponseHandlers = proplists:delete(TxnId, State#state.response_handlers),
             NewState = State#state{response_handlers=ResponseHandlers},
