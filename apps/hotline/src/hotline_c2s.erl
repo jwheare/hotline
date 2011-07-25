@@ -36,6 +36,8 @@ end).
     socket,                    % tcp socket
     status=disconnected,       % connected status
     connection,                % connection object
+    user_id,                   % user id once logged in
+    version,                   % server version once logged in
     transaction_id = 0,        % unique incrementing id
     response_handlers = [],    % response transaction handlers
     packet_buffer = <<>>,      % buffer of unparsed packets
@@ -486,16 +488,56 @@ tcp(State, Packet) ->
 
 % response handlers
 
-response(State, login, _Transaction) ->
-    NewState = State#state{status=connected},
-    NewState2 = set_client_user_info(NewState),
-    NewState3 = ws(NewState2, [
-        {type, <<"logged_in">>}
-    ]),
-    NewState4 = get_user_name_list(NewState3),
-    NewState5 = get_messages(NewState4),
-    NewState5;
-    
+response(State, login, Transaction) ->
+    Params = Transaction#transaction.parameters,
+    case proplists:get_value(error_text, Params) of
+        undefined ->
+            % Update state
+            NewState = State#state{status=connected},
+            
+            WsProps = [
+                {type, <<"logged_in">>}
+            ],
+            
+            % Conditionally set user_id
+            {WsProps2, NewState2} = case proplists:get_value(user_id, Params) of
+                <<UserId:16>> ->
+                    {WsProps ++ [
+                        {user_id, UserId}
+                    ], NewState#state{user_id=UserId}};
+                _ ->
+                    {WsProps, NewState}
+            end,
+            
+            % Conditionally set version id
+            {WsProps3, NewState3} = case proplists:get_value(vers, Params) of
+                <<Version:16>> ->
+                    {WsProps2 ++ [
+                        {version, Version}
+                    ], NewState2#state{version=Version}};
+                _ ->
+                    {WsProps2, NewState2}
+            end,
+            
+            % Send ws message
+            NewState4 = ws(NewState3, WsProps3),
+            
+            % Final connection initialisation
+            NewState5 = set_client_user_info(NewState4),
+            NewState6 = get_user_name_list(NewState5),
+            NewState7 = get_messages(NewState6),
+            NewState7;
+        ErrorText ->
+            % Error logging in
+            NewState = ws(State, [
+                {type, <<"login_error">>},
+                {msg, ErrorText}
+            ]),
+            
+            % Terminate socket
+            terminate({login_error, proplists:get_value(error_text, ErrorText)}, NewState)
+    end;
+
 response(State, get_user_name_list, Transaction) ->
     ChatSubject = proplists:get_value(chat_subject, Transaction#transaction.parameters),
     UserList = [

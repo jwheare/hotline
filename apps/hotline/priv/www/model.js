@@ -161,7 +161,10 @@ var MODEL = {};
             'username',
             'icon'
         ],
-        logged_in: [],
+        logged_in: [
+            'version',
+            'user_id'
+        ],
         get_msgs: [
             'messages'
         ],
