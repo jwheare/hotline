@@ -4,7 +4,9 @@ var MODEL = {};
         spec: [
             'state',
             'title',
-            'hostname'
+            'hostname',
+            'version',
+            'user_id'
         ],
         initialize: function () {
             this.news          = new News();
@@ -31,13 +33,17 @@ var MODEL = {};
             },
             handshake: function (message) {
                 this.set({
-                    state: 'handshaking',
-                    title: message.title,
+                    state:    'handshaking',
+                    title:    message.title,
                     hostname: message.hostname
                 });
             },
             login: function (message) {
-                this.set({state: 'loggingIn'});
+                this.set({
+                    state:  'loggingIn',
+                    user_id: message.user_id,
+                    version: message.version
+                });
             },
             login_error: function (message) {
                 this.addLine(message);
@@ -53,7 +59,7 @@ var MODEL = {};
                 this.addLine(message);
             },
             get_msgs: function (message) {
-                this.news.set(message);
+                this.news.set({messages: message.messages});
             },
             kicked: function (message) {
                 this.addLine(message);
