@@ -578,13 +578,7 @@ response(State, _Type, _Transaction) ->
 transaction(State, Transaction = #transaction{operation=user_access}) ->
     % Update state
     <<AccessLevel:64>> = proplists:get_value(user_access, Transaction#transaction.parameters),
-    NewState = State#state{access_level=AccessLevel},
-    
-    % Send ws message
-    ws(NewState, [
-        {type, <<"access_level">>},
-        {level, AccessLevel}
-    ]);
+    State#state{access_level=AccessLevel};
 
 transaction(State, Transaction = #transaction{operation=chat_msg}) ->
     Message = proplists:get_value(data, Transaction#transaction.parameters),

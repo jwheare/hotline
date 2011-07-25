@@ -6,8 +6,7 @@ var MODEL = {};
             'title',
             'hostname',
             'version',
-            'user_id',
-            'access_level'
+            'user_id'
         ],
         initialize: function () {
             this.news          = new News();
@@ -51,9 +50,6 @@ var MODEL = {};
                     user_id: message.user_id,
                     version: message.version
                 });
-            },
-            access_level: function (message) {
-                this.set({access_level: message.level});
             },
             chat_msg: function (message) {
                 this.addLine(message);
@@ -109,47 +105,6 @@ var MODEL = {};
         },
         resetMembers: function (members) {
             this.members.reset(members);
-        }
-    }, {
-        accessLevel: {
-            DELETE_FILE:             0,
-            UPLOAD_FILE:             1,
-            DOWNLOAD_FILE:           2,
-            RENAME_FILE:             3,
-            MOVE_FILE:               4,
-            CREATE_FOLDER:           5,
-            DELETE_FOLDER:           6,
-            RENAME_FOLDER:           7,
-            MOVE_FOLDER:             8,
-            READ_CHAT:               9,
-            SEND_CHAT:               10,
-            OPEN_CHAT:               11,
-            CLOSE_CHAT:              12,
-            SHOW_IN_LIST:            13,
-            CREATE_USER:             14,
-            DELETE_USER:             15,
-            OPEN_USER:               16,
-            MODIFY_USER:             17,
-            CHANGE_OWN_PASS:         18,
-            SEND_PRIV_MSG:           19,
-            NEWS_READ_ART_TYPE:      20,
-            NEWS_POST_ART_TYPE:      21,
-            DISCON_USER_TYPE:        22,
-            CANNOT_BE_DISCON:        23,
-            GET_CLIENT_INFO_TYPE:    24,
-            UPLOAD_ANYWHERE:         25,
-            ANY_NAME_TYPE:           26,
-            NO_AGREEMENT:            27,
-            SET_FILE_COMMENT_TYPE:   28,
-            SET_FOLDER_COMMENT_TYPE: 29,
-            VIEW_DROP_BOXES:         30,
-            MAKE_ALIAS_TYPE:         31,
-            BROADCAST_TYPE:          32,
-            NEWS_DELETE_ART_TYPE:    33,
-            NEWS_CREATE_CAT_TYPE:    34,
-            NEWS_DELETE_CAT_TYPE:    35,
-            NEWS_CREATE_FLDR_TYPE:   36,
-            NEWS_DELETE_FLDR_TYPE:   37
         }
     });
     var Chat = Backbone.Model.extend({
@@ -227,9 +182,6 @@ var MODEL = {};
         logged_in: [
             'version',
             'user_id'
-        ],
-        access_level: [
-            'level'
         ],
         get_msgs: [
             'messages'
