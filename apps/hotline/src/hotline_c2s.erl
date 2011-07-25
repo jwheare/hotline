@@ -532,7 +532,7 @@ response(State, login, Transaction) ->
             ]),
             
             % Terminate socket
-            terminate({login_error, proplists:get_value(error_text, ErrorText)}, NewState)
+            terminate({login_error, ErrorText}, NewState)
     end;
 
 response(State, get_user_name_list, Transaction) ->
