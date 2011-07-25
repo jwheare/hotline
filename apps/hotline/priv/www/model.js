@@ -40,17 +40,17 @@ var MODEL = {};
                 });
             },
             login: function (message) {
-                this.set({
-                    state:  'loggingIn',
-                    user_id: message.user_id,
-                    version: message.version
-                });
+                this.set({state: 'loggingIn'});
             },
             login_error: function (message) {
                 this.addLine(message);
             },
             logged_in: function (message) {
-                this.set({state: 'loggedIn'});
+                this.set({
+                    state:  'loggedIn',
+                    user_id: message.user_id,
+                    version: message.version
+                });
             },
             access_level: function (message) {
                 this.set({access_level: message.level});
