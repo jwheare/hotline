@@ -315,6 +315,12 @@ var VIEW = {};
         socket_closed: LineView.makeRenderer(function () {
             return 'Disconnected';
         }),
+        login_error: LineView.makeRenderer(function () {
+            return 'Login failed: ' + escapeText(this.model.get('msg'));
+        }),
+        kicked: LineView.makeRenderer(function () {
+            return 'Kicked: ' + escapeText(this.model.get('msg'));
+        }),
         user_joined: LineView.makeRenderer(function () {
             return '→ ' + escapeText(this.model.get('user').nick) + ' joined';
         }),

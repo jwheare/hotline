@@ -52,6 +52,12 @@ var MODEL = {};
             get_msgs: function (message) {
                 this.news.set(message);
             },
+            login_error: function (message) {
+                this.addLine(message);
+            },
+            kicked: function (message) {
+                this.addLine(message);
+            },
             socket_closed: function (message) {
                 this.set({state: 'disconnected'});
                 this.addLine(message);
@@ -160,6 +166,12 @@ var MODEL = {};
             'login',
             'username',
             'icon'
+        ],
+        login_error: [
+            'msg'
+        ],
+        kicked: [
+            'msg'
         ],
         logged_in: [
             'version',
