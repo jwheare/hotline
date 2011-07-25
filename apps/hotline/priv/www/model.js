@@ -39,6 +39,9 @@ var MODEL = {};
             login: function (message) {
                 this.set({state: 'loggingIn'});
             },
+            login_error: function (message) {
+                this.addLine(message);
+            },
             logged_in: function (message) {
                 this.set({state: 'loggedIn'});
             },
@@ -51,9 +54,6 @@ var MODEL = {};
             },
             get_msgs: function (message) {
                 this.news.set(message);
-            },
-            login_error: function (message) {
-                this.addLine(message);
             },
             kicked: function (message) {
                 this.addLine(message);
