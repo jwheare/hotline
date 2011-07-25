@@ -488,6 +488,7 @@ tcp(State, Packet) ->
 
 response(State, login, Transaction) ->
     Params = Transaction#transaction.parameters,
+    
     case proplists:get_value(error_text, Params) of
         undefined ->
             % Update state
@@ -537,7 +538,9 @@ response(State, login, Transaction) ->
     end;
 
 response(State, get_user_name_list, Transaction) ->
-    ChatSubject = proplists:get_value(chat_subject, Transaction#transaction.parameters),
+    Params = Transaction#transaction.parameters,
+    
+    % Build user list an update state
     UserList = [
         {UserId, #user{
             id=UserId,
@@ -551,16 +554,28 @@ response(State, get_user_name_list, Transaction) ->
             Status:16,
             NickSize:16,
             Nick:NickSize/binary
-        >>} <- Transaction#transaction.parameters,
+        >>} <- Params,
         Type =:= user_name_with_info
     ],
+    NewState = State#state{user_list=UserList},
     ?LOG("~p", [UserList]),
-    NewState = State#state{chat_subject=ChatSubject, user_list=UserList},
-    ws(NewState, [
+    
+    WsProps = [
         {type, <<"user_name_list">>},
-        {chat_subject, NewState#state.chat_subject},
-        {userlist, [user_to_proplist(User) || {_UserId, User} <- NewState#state.user_list]}
-    ]);
+        {userlist, [user_to_proplist(User) || {_UserId, User} <- UserList]}
+    ],
+    
+    % Conditionally set user_id
+    {WsProps2, NewState2} = case proplists:get_value(chat_subject, Params) of
+        undefined ->
+            {WsProps, NewState};
+        ChatSubject ->
+            {WsProps ++ [
+                {chat_subject, ChatSubject}
+            ], NewState#state{chat_subject=ChatSubject}}
+    end,
+    
+    ws(NewState2, WsProps2);
 
 response(State, get_msgs, Transaction) ->
     Messages = proplists:get_value(data, Transaction#transaction.parameters),
