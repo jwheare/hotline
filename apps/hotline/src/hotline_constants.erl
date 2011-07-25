@@ -4,7 +4,7 @@
     field_to_atom/1, field_to_code/1,
     transaction_to_atom/1, transaction_to_code/1,
     opt_to_code/1,
-    access_to_atom/1, access_to_code/1,
+    access_to_atom/1, access_to_value/1,
     folder_action_to_atom/1, folder_action_to_code/1
 ]).
 
@@ -290,44 +290,44 @@ access_to_atom(35) -> news_delete_cat_type;
 access_to_atom(36) -> news_create_fldr_type;
 access_to_atom(37) -> news_delete_fldr_type.
 
-access_to_code(delete_file) -> (0);
-access_to_code(upload_file) -> (1);
-access_to_code(download_file) -> (2);
-access_to_code(rename_file) -> (3);
-access_to_code(move_file) -> (4);
-access_to_code(create_folder) -> (5);
-access_to_code(delete_folder) -> (6);
-access_to_code(rename_folder) -> (7);
-access_to_code(move_folder) -> (8);
-access_to_code(read_chat) -> (9);
-access_to_code(send_chat) -> (10);
-access_to_code(open_chat) -> (11);
-access_to_code(close_chat) -> (12);
-access_to_code(show_in_list) -> (13);
-access_to_code(create_user) -> (14);
-access_to_code(delete_user) -> (15);
-access_to_code(open_user) -> (16);
-access_to_code(modify_user) -> (17);
-access_to_code(change_own_pass) -> (18);
-access_to_code(send_priv_msg) -> (19);
-access_to_code(news_read_art_type) -> (20);
-access_to_code(news_post_art_type) -> (21);
-access_to_code(discon_user_type) -> (22);
-access_to_code(cannot_be_discon) -> (23);
-access_to_code(get_client_info_type) -> (24);
-access_to_code(upload_anywhere) -> (25);
-access_to_code(any_name_type) -> (26);
-access_to_code(no_agreement) -> (27);
-access_to_code(set_file_comment_type) -> (28);
-access_to_code(set_folder_comment_type) -> (29);
-access_to_code(view_drop_boxes) -> (30);
-access_to_code(make_alias_type) -> (31);
-access_to_code(broadcast_type) -> (32);
-access_to_code(news_delete_art_type) -> (33);
-access_to_code(news_create_cat_type) -> (34);
-access_to_code(news_delete_cat_type) -> (35);
-access_to_code(news_create_fldr_type) -> (36);
-access_to_code(news_delete_fldr_type) -> (37).
+access_to_value(delete_file) -> (0);
+access_to_value(upload_file) -> (1);
+access_to_value(download_file) -> (2);
+access_to_value(rename_file) -> (3);
+access_to_value(move_file) -> (4);
+access_to_value(create_folder) -> (5);
+access_to_value(delete_folder) -> (6);
+access_to_value(rename_folder) -> (7);
+access_to_value(move_folder) -> (8);
+access_to_value(read_chat) -> (9);
+access_to_value(send_chat) -> (10);
+access_to_value(open_chat) -> (11);
+access_to_value(close_chat) -> (12);
+access_to_value(show_in_list) -> (13);
+access_to_value(create_user) -> (14);
+access_to_value(delete_user) -> (15);
+access_to_value(open_user) -> (16);
+access_to_value(modify_user) -> (17);
+access_to_value(change_own_pass) -> (18);
+access_to_value(send_priv_msg) -> (19);
+access_to_value(news_read_art_type) -> (20);
+access_to_value(news_post_art_type) -> (21);
+access_to_value(discon_user_type) -> (22);
+access_to_value(cannot_be_discon) -> (23);
+access_to_value(get_client_info_type) -> (24);
+access_to_value(upload_anywhere) -> (25);
+access_to_value(any_name_type) -> (26);
+access_to_value(no_agreement) -> (27);
+access_to_value(set_file_comment_type) -> (28);
+access_to_value(set_folder_comment_type) -> (29);
+access_to_value(view_drop_boxes) -> (30);
+access_to_value(make_alias_type) -> (31);
+access_to_value(broadcast_type) -> (32);
+access_to_value(news_delete_art_type) -> (33);
+access_to_value(news_create_cat_type) -> (34);
+access_to_value(news_delete_cat_type) -> (35);
+access_to_value(news_create_fldr_type) -> (36);
+access_to_value(news_delete_fldr_type) -> (37).
 
 folder_action_to_atom(1) -> send_file;
 folder_action_to_atom(2) -> resume_file;

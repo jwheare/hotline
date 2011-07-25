@@ -37,6 +37,7 @@ end).
     status=disconnected,       % connected status
     connection,                % connection object
     user_id,                   % user id once logged in
+    access_level,              % 64-bit access level mask
     version,                   % server version once logged in
     transaction_id = 0,        % unique incrementing id
     response_handlers = [],    % response transaction handlers
@@ -573,6 +574,17 @@ response(State, _Type, _Transaction) ->
     State.
 
 % transaction handlers
+
+transaction(State, Transaction = #transaction{operation=user_access}) ->
+    % Update state
+    <<AccessLevel:64>> = proplists:get_value(user_access, Transaction#transaction.parameters),
+    NewState = State#state{access_level=AccessLevel},
+    
+    % Send ws message
+    ws(NewState, [
+        {type, <<"access_level">>},
+        {level, AccessLevel}
+    ]);
 
 transaction(State, Transaction = #transaction{operation=chat_msg}) ->
     Message = proplists:get_value(data, Transaction#transaction.parameters),
