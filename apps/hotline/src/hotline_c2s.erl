@@ -635,6 +635,15 @@ transaction(State, Transaction = #transaction{operation=notify_delete_user}) ->
             delete_user(State, User)
     end;
 
+transaction(State, Transaction = #transaction{operation=disconnect_msg}) ->
+    Message = proplists:get_value(data, Transaction#transaction.parameters),
+    ?LOG("Kicked: ~s", [Message]),
+    NewState = ws(State, [
+        {type, <<"kicked">>},
+        {msg, Message}
+    ]),
+    terminate({kicked, Message}, NewState);
+
 transaction(State, Transaction) ->
     % Check for a transaction handler
     TxnId = Transaction#transaction.id,
