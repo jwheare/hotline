@@ -13,9 +13,11 @@ rebar: https://github.com/basho/rebar
 {connection_password, <<"password">>}.
 {connection_icon,     150}.
 
-2. Start the app with ./start.sh
+2. make
 
-3. Point a browser at http://localhost:55500/
+3. Start the app with ./start.sh
+
+4. Point a browser at http://localhost:55500/
 
 ---
 
