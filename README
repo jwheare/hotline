@@ -1,6 +1,8 @@
 Erlang Hotline client with a web UI.
 
-You need erlang, and rebar
+Dependencies:
+erlang: http://www.erlang.org/download.html
+rebar: https://github.com/basho/rebar
 
 1. Make a file in apps/hotline/priv/conf/local.conf that looks like this:
 
