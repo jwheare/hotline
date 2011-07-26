@@ -16,7 +16,9 @@
     change_nick/1,
     change_icon/1,
     
-    get_state/0
+    get_state/0,
+    
+    log/1, log/2
 ]).
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
 
@@ -24,8 +26,6 @@
 
 -define(REMOTE_PORT, 5500).
 -define(SERVER_VERSION, 185).
--define(LOG(String, Params), io:format(String ++ "~n", Params)).
--define(LOG(String), ?LOG(String, [])).
 -define(CONFVAL(K, Default), case application:get_env(hotline, K) of
     undefined -> Default;
     {ok, Value}     -> Value 
@@ -47,6 +47,26 @@ end).
     websockets = [],           % pids to send socket data to
     backlog = []               % event backlog for the active session
 }).
+
+is_string (Value) ->
+    case is_list(Value) of
+        false -> false;
+        true -> lists:all(fun (Item) ->
+            if
+                Item < 0   -> false;
+                Item > 255 -> false;
+                true       -> true
+            end
+        end, Value)
+    end.
+
+log(Value) ->
+    case is_string(Value) of
+        true  -> log(Value, []);
+        false -> log("~p", [Value])
+    end.
+log(Format, Params) ->
+    io:format(Format ++ "~n", Params).
 
 % Public methods
 
@@ -102,7 +122,7 @@ init([]) ->
     end.
 
 terminate(Reason, State) ->
-    ?LOG("Socket closed: ~p", [Reason]),
+    log("Socket closed: ~p", [Reason]),
     NewState = ws(State, [
         {type, <<"socket_closed">>}
     ]),
@@ -211,7 +231,7 @@ handle_info({'DOWN', _MonitorRef, _Type, Pid, _Info}, State) ->
     {noreply, State#state{websockets=WebSockets}};
 
 handle_info(Request, State) ->
-    ?LOG("Unhandled request: ~p", [Request]),
+    log("Unhandled request: ~p", [Request]),
     {noreply, State}.
 
 % register_response_handler
@@ -252,7 +272,7 @@ request(State, Operation, Parameters) ->
     OperationCode = hotline_constants:transaction_to_code(Operation),
     TransactionId = State#state.transaction_id + 1,
     
-    ?LOG("SND [~p:~p] ~p", [TransactionId, Operation, Parameters]),
+    log("SND [~p:~p] ~p", [TransactionId, Operation, Parameters]),
     
     % Built parameter data
     ParameterData = lists:map(fun ({ParamK, ParamV}) ->
@@ -338,7 +358,7 @@ encode_binary_string(BinaryString) ->
 handshake(State) ->
     Version = 1,
     SubVersion = 2,
-    ?LOG("Handshaking ~p", [State#state.connection#connection.hostname]),
+    log("Handshaking ~p", [State#state.connection#connection.hostname]),
     tcp_send(State, <<"TRTP","HOTL",Version:16,SubVersion:16>>).
 
 % requests
@@ -558,7 +578,7 @@ response(State, get_user_name_list, Transaction) ->
         Type =:= user_name_with_info
     ],
     NewState = State#state{user_list=UserList},
-    ?LOG("~p", [UserList]),
+    log(UserList),
     
     WsProps = [
         {type, <<"user_name_list">>},
@@ -617,7 +637,7 @@ transaction(State, Transaction = #transaction{operation=invite_to_chat}) ->
     <<ChatId:32>> = proplists:get_value(chat_id,   Transaction#transaction.parameters),
     <<FromId:16>> = proplists:get_value(user_id,   Transaction#transaction.parameters),
     From          = proplists:get_value(user_name, Transaction#transaction.parameters),
-    ?LOG("Invite [~s] ~B", [From, ChatId]),
+    log("Invite [~s] ~B", [From, ChatId]),
     ws(State, [
         {type, <<"invite_to_chat">>},
         {chat_id, ChatId},
@@ -658,7 +678,7 @@ transaction(State, Transaction = #transaction{operation=notify_delete_user}) ->
 
 transaction(State, Transaction = #transaction{operation=disconnect_msg}) ->
     Message = proplists:get_value(data, Transaction#transaction.parameters),
-    ?LOG("Kicked: ~s", [Message]),
+    log("Kicked: ~s", [Message]),
     NewState = ws(State, [
         {type, <<"kicked">>},
         {msg, Message}
@@ -671,14 +691,14 @@ transaction(State, Transaction) ->
     case proplists:get_value(TxnId, State#state.response_handlers) of
         undefined ->
             % No response handler
-            ?LOG("RCV [~p:~p] ~p", [TxnId, Transaction#transaction.operation, Transaction]),
+            log("RCV [~p:~p] ~p", [TxnId, Transaction#transaction.operation, Transaction]),
             State;
         Type ->
             case Transaction#transaction.operation of
                 unknown ->
-                    ?LOG("RSP [~p:~p] ~p", [Transaction#transaction.id, Type, Transaction]);
+                    log("RSP [~p:~p] ~p", [Transaction#transaction.id, Type, Transaction]);
                 Operation ->
-                    ?LOG("RSP-OP [~p(~p):~p] ~p", [Transaction#transaction.id, Type, Operation, Transaction])
+                    log("RSP-OP [~p(~p):~p] ~p", [Transaction#transaction.id, Type, Operation, Transaction])
             end,
             % Remove response handler and call
             ResponseHandlers = proplists:delete(TxnId, State#state.response_handlers),
