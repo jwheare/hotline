@@ -1,7 +1,20 @@
-Hotline client
-http://hotline.wikia.com/wiki/Hotline_Wiki
+Erlang Hotline client with a web UI.
 
-Start the app with ./start.sh
-Load a browser at http://localhost:55500/ to connect to a test server
+You need erlang, and rebar
 
-Maybe http://livebus.org:55500 will work if I can get it up and running.
+1. Make a file in apps/hotline/priv/conf/local.conf that looks like this:
+
+{connection_default_hostname, <<"livebus.org">>}.
+{connection_default_title,    <<"Livebus">>}.
+{connection_default_name,     <<"Nickname">>}.
+{connection_default_username, <<"username">>}.
+{connection_default_password, <<"password">>}.
+{connection_default_icon,     150}.
+
+2. Start the app with ./start.sh
+
+3. Point a browser at http://localhost:55500/
+
+---
+
+Wiki on the Hotline protocol: http://hotline.wikia.com/wiki/Hotline_Wiki
