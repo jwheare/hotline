@@ -4,12 +4,12 @@ You need erlang, and rebar
 
 1. Make a file in apps/hotline/priv/conf/local.conf that looks like this:
 
-{connection_default_hostname, <<"livebus.org">>}.
-{connection_default_title,    <<"Livebus">>}.
-{connection_default_name,     <<"Nickname">>}.
-{connection_default_username, <<"username">>}.
-{connection_default_password, <<"password">>}.
-{connection_default_icon,     150}.
+{connection_hostname, <<"livebus.org">>}.
+{connection_title,    <<"Livebus">>}.
+{connection_name,     <<"Nickname">>}.
+{connection_username, <<"username">>}.
+{connection_password, <<"password">>}.
+{connection_icon,     150}.
 
 2. Start the app with ./start.sh
 
