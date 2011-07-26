@@ -173,7 +173,7 @@ handle_call(_Request, _From, State) ->
 
 handle_cast({register_websocket, Pid}, State) ->
     % Monitor websocket so we can unregister it when it goes down
-    monitor(process, Pid),
+    erlang:monitor(process, Pid),
     % Send backlog
     lists:foreach(fun (Message) ->
         Pid ! {hotline_message, Message}
