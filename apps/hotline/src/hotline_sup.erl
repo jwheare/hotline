@@ -26,8 +26,7 @@ init([]) ->
     ok = (catch load_config()),
     
     {ok, { {one_for_one, 1, 1}, [
-        ?CHILD(hotline_c2s, worker),
-        {hotline_web, {hotline_web, start, []}, permanent, 5000, worker, dynamic}
+        ?CHILD(hotline_c2s, worker)
     ]} }.
 
 load_config() ->

@@ -5,7 +5,8 @@
   {registered, []},
   {applications, [
                   kernel,
-                  stdlib
+                  stdlib,
+                  websocket
                  ]},
   {mod, { hotline_app, []}},
   {env, []}

@@ -124,7 +124,7 @@ init([]) ->
 terminate(Reason, State) ->
     log("Socket closed: ~p", [Reason]),
     NewState = ws(State, [
-        {type, <<"socket_closed">>}
+        {<<"type">>, <<"socket_closed">>}
     ]),
     gen_tcp:close(NewState#state.socket),
     NewState2 = NewState#state{
@@ -209,9 +209,9 @@ handle_cast(_Request, State) ->
 
 handle_info(connected, State) ->
     NewState = ws(State, [
-        {type, <<"handshake">>},
-        {hostname, State#state.connection#connection.hostname},
-        {title, State#state.connection#connection.title}
+        {<<"type">>, <<"handshake">>},
+        {<<"hostname">>, State#state.connection#connection.hostname},
+        {<<"title">>, State#state.connection#connection.title}
     ]),
     handshake(NewState),
     {noreply, NewState};
@@ -379,10 +379,10 @@ login(State) ->
     
     % Send ws messages
     ws(NewState2, [
-        {type, <<"login">>},
-        {login, Connection#connection.username},
-        {username, Connection#connection.name},
-        {icon, Connection#connection.icon}
+        {<<"type">>, <<"login">>},
+        {<<"login">>, Connection#connection.username},
+        {<<"username">>, Connection#connection.name},
+        {<<"icon">>, Connection#connection.icon}
     ]).
 
 change_nick(State, Nick) ->
@@ -436,10 +436,10 @@ chat_send(State, Line, Emote) ->
 
 user_to_proplist(User) ->
     [
-        {id, User#user.id},
-        {nick, User#user.nick},
-        {icon, User#user.icon},
-        {status, User#user.status}
+        {<<"id">>, User#user.id},
+        {<<"nick">>, User#user.nick},
+        {<<"icon">>, User#user.icon},
+        {<<"status">>, User#user.status}
     ].
 
 % user list management
@@ -451,8 +451,8 @@ add_user(State, User) ->
     
     % Send ws messages
     ws(NewState, [
-        {type, <<"user_joined">>},
-        {user, user_to_proplist(User)}
+        {<<"type">>, <<"user_joined">>},
+        {<<"user">>, {user_to_proplist(User)}}
     ]).
 
 modify_user(State, CurrentUser, User) ->
@@ -462,16 +462,16 @@ modify_user(State, CurrentUser, User) ->
     
     % Send ws messages
     NewState2 = ws(NewState, [
-        {type, <<"modify_user">>},
-        {user, user_to_proplist(User)}
+        {<<"type">>, <<"modify_user">>},
+        {<<"user">>, {user_to_proplist(User)}}
     ]),
     % Nick changes get a separate message
     case CurrentUser#user.nick =/= User#user.nick of
         true ->
             ws(NewState2, [
-                {type, <<"user_nick_change">>},
-                {user, user_to_proplist(User)},
-                {old_nick, CurrentUser#user.nick}
+                {<<"type">>, <<"user_nick_change">>},
+                {<<"user">>, {user_to_proplist(User)}},
+                {<<"old_nick">>, CurrentUser#user.nick}
             ]);
         false ->
             NewState2
@@ -484,8 +484,8 @@ delete_user(State, User) ->
     
     % Send ws messages
     ws(NewState, [
-        {type, <<"user_left">>},
-        {user, user_to_proplist(User)}
+        {<<"type">>, <<"user_left">>},
+        {<<"user">>, {user_to_proplist(User)}}
     ]).
 
 % tcp handlers
@@ -515,7 +515,7 @@ response(State, login, Transaction) ->
             NewState = State#state{status=connected},
             
             WsProps = [
-                {type, <<"logged_in">>}
+                {<<"type">>, <<"logged_in">>}
             ],
             
             % Conditionally set user_id
@@ -549,8 +549,8 @@ response(State, login, Transaction) ->
         ErrorText ->
             % Error logging in
             NewState = ws(State, [
-                {type, <<"login_error">>},
-                {msg, ErrorText}
+                {<<"type">>, <<"login_error">>},
+                {<<"msg">>, ErrorText}
             ]),
             
             % Terminate socket
@@ -581,8 +581,8 @@ response(State, get_user_name_list, Transaction) ->
     log(UserList),
     
     WsProps = [
-        {type, <<"user_name_list">>},
-        {userlist, [user_to_proplist(User) || {_UserId, User} <- UserList]}
+        {<<"type">>, <<"user_name_list">>},
+        {<<"userlist">>, [{user_to_proplist(User)} || {_UserId, User} <- UserList]}
     ],
     
     % Conditionally set user_id
@@ -600,8 +600,8 @@ response(State, get_user_name_list, Transaction) ->
 response(State, get_msgs, Transaction) ->
     Messages = proplists:get_value(data, Transaction#transaction.parameters),
     ws(State, [
-        {type, <<"get_msgs">>},
-        {messages, Messages}
+        {<<"type">>, <<"get_msgs">>},
+        {<<"messages">>, list_to_binary(xmerl_ucs:to_utf8(hotline_utils:safe_utf8_to_unicode_list(Messages)))}
     ]);
 
 response(State, _Type, _Transaction) ->
@@ -618,8 +618,8 @@ transaction(State, Transaction = #transaction{operation=user_access}) ->
 transaction(State, Transaction = #transaction{operation=chat_msg}) ->
     Message = proplists:get_value(data, Transaction#transaction.parameters),
     ws(State, [
-        {type, <<"chat_msg">>},
-        {msg, Message}
+        {<<"type">>, <<"chat_msg">>},
+        {<<"msg">>, Message}
     ]);
 
 transaction(State, Transaction = #transaction{operation=server_msg}) ->
@@ -627,10 +627,10 @@ transaction(State, Transaction = #transaction{operation=server_msg}) ->
     From          = proplists:get_value(user_name, Transaction#transaction.parameters),
     Message       = proplists:get_value(data,      Transaction#transaction.parameters),
     ws(State, [
-        {type, <<"server_msg">>},
-        {from_id, FromId},
-        {from, From},
-        {msg, Message}
+        {<<"type">>, <<"server_msg">>},
+        {<<"from_id">>, FromId},
+        {<<"from">>, From},
+        {<<"msg">>, Message}
     ]);
 
 transaction(State, Transaction = #transaction{operation=invite_to_chat}) ->
@@ -639,10 +639,10 @@ transaction(State, Transaction = #transaction{operation=invite_to_chat}) ->
     From          = proplists:get_value(user_name, Transaction#transaction.parameters),
     log("Invite [~s] ~B", [From, ChatId]),
     ws(State, [
-        {type, <<"invite_to_chat">>},
-        {chat_id, ChatId},
-        {from_id, FromId},
-        {from, From}
+        {<<"type">>, <<"invite_to_chat">>},
+        {<<"chat_id">>, ChatId},
+        {<<"from_id">>, FromId},
+        {<<"from">>, From}
     ]);
 
 transaction(State, Transaction = #transaction{operation=notify_change_user}) ->
@@ -680,8 +680,8 @@ transaction(State, Transaction = #transaction{operation=disconnect_msg}) ->
     Message = proplists:get_value(data, Transaction#transaction.parameters),
     log("Kicked: ~s", [Message]),
     NewState = ws(State, [
-        {type, <<"kicked">>},
-        {msg, Message}
+        {<<"type">>, <<"kicked">>},
+        {<<"msg">>, Message}
     ]),
     terminate({kicked, Message}, NewState);
 
