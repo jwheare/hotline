@@ -1,28 +1,15 @@
-.PHONY: deps
+# This is normally done by activating kerl using:
+#  $ source /opt/erlang/19.3/activate
+export PATH := /opt/erlang/19.3/bin:$(PATH)
 
-all: update compile
 
 compile:
-	rebar compile
+	rebar3 as dev release
 
-deps:
-	rebar get-deps
+distclean:
+	rm -Rf ./_build
 
-update: deps
-	rebar update-deps
+start: compile
+	./_build/dev/rel/hotline/bin/hotline console
 
-clean:
-	rebar clean
-
-distclean: clean 
-	rebar delete-deps
-
-eunit:
-	rebar skip_deps=true eunit
-
-dialyzer: compile
-	rebar dialyze
-
-docs:
-	rebar skip_deps=true doc
-
+.PHONY: compile distclean start

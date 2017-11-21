@@ -1,13 +1,16 @@
-{application, hotline,
- [
-  {description, ""},
-  {vsn, "1"},
-  {registered, []},
-  {applications, [
-                  kernel,
-                  stdlib,
-                  websocket
-                 ]},
-  {mod, { hotline_app, []}},
-  {env, []}
- ]}.
+{application, hotline, [
+    {description, "Hotline client"},
+    {vsn, "1.0"},
+    {modules, []},
+    {registered, [hotline_sup]},
+    {applications, [
+        kernel,
+        stdlib,
+        websocket,
+        lager,
+        xmerl,
+        jiffy
+    ]},
+    {mod, {hotline_app, []}},
+    {env, []}
+]}.

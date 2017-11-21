@@ -1,3 +1,2 @@
-ebin
-deps
 local.conf
+_build
