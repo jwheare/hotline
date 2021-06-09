@@ -8,8 +8,8 @@
 
 safe_utf8_to_unicode_list(<<>>, {_, []}) ->
     [];
-safe_utf8_to_unicode_list(<<>>, {Orig, Repl}) ->
-    % lager:warning("Substituting replacement characters for invalid utf8 sequence: ~w Bad chars: ~w", [Orig, lists:reverse(Repl)]),
+safe_utf8_to_unicode_list(<<>>, {_Orig, _Repl}) ->
+    % lager:warning("Substituting replacement characters for invalid utf8 sequence: ~w Bad chars: ~w", [_Orig, lists:reverse(_Repl)]),
     [];
 safe_utf8_to_unicode_list(Chars, {Orig, Repl}) ->
     Unicode = case unicode:characters_to_list(Chars) of

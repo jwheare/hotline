@@ -146,7 +146,7 @@ code_change(_PreviousVersion, State, _Extra) ->
 % time functions
 
 epoch () ->
-    now_to_seconds(now()).
+    now_to_seconds(os:timestamp()).
 
 now_to_seconds({MegaSecs, Secs, _MicroSecs}) ->
     (MegaSecs*1000000) + Secs.

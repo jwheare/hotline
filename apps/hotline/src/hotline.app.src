@@ -1,6 +1,6 @@
 {application, hotline, [
     {description, "Hotline client"},
-    {vsn, "1.0"},
+    {vsn, "1.0.0"},
     {modules, []},
     {registered, [hotline_sup]},
     {applications, [
